@@ -28,7 +28,11 @@ from .components.status_panel import (
 # 自定义 CSS
 CUSTOM_CSS = """
 .gradio-container {
-    max-width: 1480px !important;
+    max-width: 1400px !important;
+    margin: 0 auto !important;
+}
+.title-row {
+    margin-bottom: 20px !important;
 }
 .mv-image button .wrap {
     font-size: 10px;
@@ -40,11 +44,13 @@ CUSTOM_CSS = """
 
 # 标题 HTML
 TITLE_HTML = """
-<div style="font-size: 2em; font-weight: bold; text-align: center; margin-bottom: 5px">
-🎨 Hunyuan3D Shape Generation
-</div>
-<div style="text-align: center; color: #666; margin-bottom: 10px;">
-高质量图像转 3D 模型生成服务 | 支持单图和多视图输入
+<div style="text-align: center; padding: 15px 0; margin-bottom: 10px;">
+    <h1 style="font-size: 1.8em; font-weight: bold; margin: 0 0 8px 0;">
+        🎨 Hunyuan3D Shape Generation
+    </h1>
+    <p style="color: #888; margin: 0; font-size: 0.95em;">
+        高质量图像转 3D 模型生成服务 | 支持单图和多视图输入
+    </p>
 </div>
 """
 
@@ -138,13 +144,13 @@ class GradioApp:
             title="Hunyuan3D Shape Generation",
             css=CUSTOM_CSS
         ) as demo:
-            # 标题
+            # 标题 - 跨越整个宽度
             gr.HTML(TITLE_HTML)
             
             # 主要内容区域 - 左右布局
-            with gr.Row():
+            with gr.Row(equal_height=False):
                 # ========== 左侧面板 - 输入和设置 ==========
-                with gr.Column(scale=3, min_width=300):
+                with gr.Column(scale=3, min_width=280):
                     # 状态面板
                     status_components = create_status_panel()
                     
@@ -157,23 +163,21 @@ class GradioApp:
                             mv_images = create_multi_view_input()
                     
                     # 生成按钮
-                    with gr.Row():
-                        generate_btn = gr.Button(
-                            "🚀 生成 3D 模型",
-                            variant="primary",
-                            min_width=100
-                        )
+                    generate_btn = gr.Button(
+                        "🚀 生成 3D 模型",
+                        variant="primary"
+                    )
                     
                     # 设置面板
                     settings = create_settings_panel()
                 
                 # ========== 右侧面板 - 预览和结果 ==========
-                with gr.Column(scale=6, min_width=400):
+                with gr.Column(scale=5, min_width=400):
                     with gr.Tabs(selected='preview_tab') as output_tabs:
                         with gr.Tab('3D 预览', id='preview_tab'):
                             model_3d = gr.Model3D(
                                 label="3D 模型预览",
-                                height=500,
+                                height=480,
                                 clear_color=[0.1, 0.1, 0.15, 1.0]
                             )
                             status_text = gr.Markdown(
@@ -187,12 +191,11 @@ class GradioApp:
                             )
                     
                     # 下载区域
-                    with gr.Row():
-                        download_file = gr.File(
-                            label="下载模型文件",
-                            visible=True,
-                            interactive=False
-                        )
+                    download_file = gr.File(
+                        label="下载模型文件",
+                        visible=True,
+                        interactive=False
+                    )
             
             # ========== 事件绑定 ==========
             
