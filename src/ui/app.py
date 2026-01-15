@@ -139,10 +139,9 @@ class GradioApp:
     def build_interface(self) -> gr.Blocks:
         """构建 Gradio 界面 - 左右布局"""
         
+        # Gradio 6.0+: theme 和 css 需要在 launch() 中传递
         with gr.Blocks(
-            theme=gr.themes.Base(),
-            title="Hunyuan3D Shape Generation",
-            css=CUSTOM_CSS
+            title="Hunyuan3D Shape Generation"
         ) as demo:
             # 标题 - 跨越整个宽度
             gr.HTML(TITLE_HTML)
@@ -434,9 +433,12 @@ def launch_app(
         weights_dir=weights_dir
     )
     
+    # Gradio 6.0+: theme 和 css 在 launch() 中传递
     demo.launch(
         server_name=host,
         server_port=port,
         share=share,
-        show_error=True
+        show_error=True,
+        theme=gr.themes.Base(),
+        css=CUSTOM_CSS
     )
