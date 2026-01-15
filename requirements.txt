@@ -48,6 +48,12 @@ fastapi
 uvicorn[standard]
 pydantic
 python-multipart
+requests
+
+# ============================================
+# UI (Gradio)
+# ============================================
+gradio>=4.0.0
 
 # ============================================
 # Model Loading
