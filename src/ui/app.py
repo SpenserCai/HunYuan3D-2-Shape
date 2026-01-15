@@ -161,12 +161,14 @@ class GradioApp:
             is_ready = data.get("is_ready", False)
             loaded_models = data.get("loaded_models", [])
             
+            # 只要服务连通就显示已连接
             if is_ready and loaded_models:
                 status_html = create_status_html(f"服务就绪 ({len(loaded_models)} 模型已加载)", "connected")
-            elif status == "healthy" or status == "not_ready":
-                status_html = create_status_html("服务已连接 (模型加载中...)", "processing")
+            elif status in ["healthy", "not_ready"]:
+                # 服务已连接，模型会在首次请求时加载
+                status_html = create_status_html("服务已连接", "connected")
             else:
-                status_html = create_status_html("服务未就绪", "disconnected")
+                status_html = create_status_html("服务状态未知", "disconnected")
             
             return status_html, format_health_info(data)
         else:
@@ -264,6 +266,12 @@ class GradioApp:
                 progress=gr.Progress()
             ):
                 """根据输入判断使用单图还是多视图生成"""
+                # 只检查服务是否连通（模型会在第一次请求时懒加载）
+                health_response = self.client.health_check()
+                if not health_response.success:
+                    return None, None, f"❌ *服务未连接: {health_response.error}*", {"错误": health_response.error}
+                
+                # 判断使用单图还是多视图
                 if mv_front is not None or mv_back is not None or mv_left is not None or mv_right is not None:
                     return self._generate_multi_view(
                         mv_front, mv_back, mv_left, mv_right,
