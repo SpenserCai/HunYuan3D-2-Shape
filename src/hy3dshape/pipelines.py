@@ -109,7 +109,36 @@ def export_to_trimesh(mesh_output):
         return mesh_output
 
 
+# Target path mapping: official paths -> local project paths
+# This allows using original model config files without modification
+TARGET_PATH_MAPPING = {
+    "hy3dgen.shapegen.": "src.hy3dshape.",      # Multi-view model config format
+    "hy3dshape.": "src.hy3dshape.",              # Single image model config format
+}
+
+
+def map_target_path(target: str) -> str:
+    """
+    Map official target paths to local project paths.
+    
+    Args:
+        target: Original target path from config file
+        
+    Returns:
+        Mapped target path for local project
+    """
+    for old_prefix, new_prefix in TARGET_PATH_MAPPING.items():
+        if target.startswith(old_prefix):
+            mapped = target.replace(old_prefix, new_prefix, 1)
+            logger.info(f"Target path mapped: {target} -> {mapped}")
+            return mapped
+    return target
+
+
 def get_obj_from_str(string, reload=False):
+    # Apply path mapping before importing
+    string = map_target_path(string)
+    
     module, cls = string.rsplit(".", 1)
     if reload:
         module_imp = importlib.import_module(module)
