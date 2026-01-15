@@ -25,46 +25,70 @@ from .components.status_panel import (
 )
 
 
-# 自定义 CSS - 强制左右布局
+# 自定义 CSS - 美观的左右布局
 CUSTOM_CSS = """
+/* 容器宽度 - 更宽 */
 .gradio-container {
-    max-width: 1400px !important;
+    max-width: 1600px !important;
     margin: 0 auto !important;
+    padding: 20px 40px !important;
 }
-/* 强制 Row 为 flex 横向布局 */
+
+/* 主布局行 */
 .main-row {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
-    gap: 16px !important;
+    gap: 30px !important;
+    padding: 10px 0 !important;
 }
-.main-row > div {
-    flex-shrink: 0 !important;
-}
+
+/* 左侧列 - 输入区域 */
 .left-column {
-    flex: 0 0 35% !important;
-    min-width: 300px !important;
-    max-width: 400px !important;
+    flex: 0 0 380px !important;
+    min-width: 350px !important;
+    max-width: 420px !important;
 }
+
+/* 右侧列 - 预览区域 */
 .right-column {
     flex: 1 1 auto !important;
-    min-width: 500px !important;
+    min-width: 600px !important;
 }
+
+/* 多视图图像样式 */
 .mv-image button .wrap {
     font-size: 10px;
 }
 .mv-image .icon-wrap {
     width: 20px;
 }
+
+/* 3D 预览区域更大 */
+.model-preview {
+    min-height: 500px !important;
+}
+
+/* 按钮样式 */
+.generate-btn {
+    margin: 15px 0 !important;
+    padding: 12px !important;
+    font-size: 16px !important;
+}
+
+/* 设置面板间距 */
+.settings-accordion {
+    margin-top: 10px !important;
+}
 """
 
-# 标题 HTML
+# 标题 HTML - 更美观
 TITLE_HTML = """
-<div style="text-align: center; padding: 15px 0; margin-bottom: 10px;">
-    <h1 style="font-size: 1.8em; font-weight: bold; margin: 0 0 8px 0;">
+<div style="text-align: center; padding: 25px 0; margin-bottom: 15px;">
+    <h1 style="font-size: 2.2em; font-weight: bold; margin: 0 0 10px 0; color: #fff;">
         🎨 Hunyuan3D Shape Generation
     </h1>
-    <p style="color: #888; margin: 0; font-size: 0.95em;">
+    <p style="color: #9ca3af; margin: 0; font-size: 1.05em;">
         高质量图像转 3D 模型生成服务 | 支持单图和多视图输入
     </p>
 </div>
@@ -165,7 +189,7 @@ class GradioApp:
             # 主要内容区域 - 左右布局
             with gr.Row(equal_height=False, elem_classes=["main-row"]):
                 # ========== 左侧面板 - 输入和设置 ==========
-                with gr.Column(scale=3, min_width=300, elem_classes=["left-column"]):
+                with gr.Column(scale=3, min_width=350, elem_classes=["left-column"]):
                     # 状态面板
                     status_components = create_status_panel()
                     
@@ -180,20 +204,22 @@ class GradioApp:
                     # 生成按钮
                     generate_btn = gr.Button(
                         "🚀 生成 3D 模型",
-                        variant="primary"
+                        variant="primary",
+                        elem_classes=["generate-btn"]
                     )
                     
                     # 设置面板
                     settings = create_settings_panel()
                 
                 # ========== 右侧面板 - 预览和结果 ==========
-                with gr.Column(scale=5, min_width=500, elem_classes=["right-column"]):
+                with gr.Column(scale=6, min_width=600, elem_classes=["right-column"]):
                     with gr.Tabs(selected='preview_tab') as output_tabs:
                         with gr.Tab('3D 预览', id='preview_tab'):
                             model_3d = gr.Model3D(
                                 label="3D 模型预览",
-                                height=480,
-                                clear_color=[0.1, 0.1, 0.15, 1.0]
+                                height=550,
+                                clear_color=[0.1, 0.1, 0.15, 1.0],
+                                elem_classes=["model-preview"]
                             )
                             status_text = gr.Markdown(
                                 value="*上传图像并点击生成按钮开始创建 3D 模型*"
