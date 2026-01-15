@@ -25,14 +25,30 @@ from .components.status_panel import (
 )
 
 
-# 自定义 CSS
+# 自定义 CSS - 强制左右布局
 CUSTOM_CSS = """
 .gradio-container {
     max-width: 1400px !important;
     margin: 0 auto !important;
 }
-.title-row {
-    margin-bottom: 20px !important;
+/* 强制 Row 为 flex 横向布局 */
+.main-row {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 16px !important;
+}
+.main-row > div {
+    flex-shrink: 0 !important;
+}
+.left-column {
+    flex: 0 0 35% !important;
+    min-width: 300px !important;
+    max-width: 400px !important;
+}
+.right-column {
+    flex: 1 1 auto !important;
+    min-width: 500px !important;
 }
 .mv-image button .wrap {
     font-size: 10px;
@@ -147,9 +163,9 @@ class GradioApp:
             gr.HTML(TITLE_HTML)
             
             # 主要内容区域 - 左右布局
-            with gr.Row(equal_height=False):
+            with gr.Row(equal_height=False, elem_classes=["main-row"]):
                 # ========== 左侧面板 - 输入和设置 ==========
-                with gr.Column(scale=3, min_width=280):
+                with gr.Column(scale=3, min_width=300, elem_classes=["left-column"]):
                     # 状态面板
                     status_components = create_status_panel()
                     
@@ -171,7 +187,7 @@ class GradioApp:
                     settings = create_settings_panel()
                 
                 # ========== 右侧面板 - 预览和结果 ==========
-                with gr.Column(scale=5, min_width=400):
+                with gr.Column(scale=5, min_width=500, elem_classes=["right-column"]):
                     with gr.Tabs(selected='preview_tab') as output_tabs:
                         with gr.Tab('3D 预览', id='preview_tab'):
                             model_3d = gr.Model3D(
