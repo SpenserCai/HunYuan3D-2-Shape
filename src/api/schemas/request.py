@@ -1,3 +1,11 @@
+'''
+Author: SpenserCai
+Date: 2026-01-15 17:48:03
+version: 
+LastEditors: SpenserCai
+LastEditTime: 2026-01-16 00:27:52
+Description: file content
+'''
 # -*- coding: utf-8 -*-
 """
 请求模型定义
@@ -25,7 +33,7 @@ class GenerateRequest(BaseModel):
     image_base64: str = Field(..., description="Base64编码的图像")
     num_inference_steps: int = Field(50, ge=1, le=200, description="推理步数")
     guidance_scale: float = Field(5.0, ge=0, le=20, description="引导强度")
-    octree_resolution: int = Field(384, ge=128, le=512, description="八叉树分辨率")
+    octree_resolution: int = Field(384, ge=128, le=1024, description="八叉树分辨率")
     remove_background: bool = Field(True, description="是否移除背景")
     optimize_mesh: bool = Field(True, description="是否优化Mesh")
     max_faces: int = Field(40000, ge=1000, le=1000000, description="最大面数")
