@@ -18,7 +18,29 @@ preprocessing:
     image_size: 1024
 
 generation:
+  # 单图生成默认配置
   default:
+    num_inference_steps: 50
+    guidance_scale: 5.0
+    octree_resolution: 384
+  
+  # 多视图生成配置
+  multi_view:
+    enabled: true
+    model: "hunyuan3d-2mv"
+    # 最少视图数（至少需要正面）
+    min_views: 1
+    # 最多视图数
+    max_views: 4
+    # 必需视图
+    required_views:
+      - front
+    # 可选视图
+    optional_views:
+      - left
+      - back
+      - right
+    # 多视图专用参数
     num_inference_steps: 50
     guidance_scale: 5.0
     octree_resolution: 384

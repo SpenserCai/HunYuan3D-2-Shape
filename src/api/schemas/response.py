@@ -17,11 +17,19 @@ class TaskStatus(str, Enum):
     FAILED = "failed"
 
 
+class InputModeEnum(str, Enum):
+    """输入模式枚举"""
+    SINGLE = "single"
+    MULTI_VIEW = "multi_view"
+
+
 class GenerateResponse(BaseModel):
     """生成响应"""
     task_id: str
     status: TaskStatus
     message: str
+    input_mode: Optional[str] = None
+    view_count: Optional[int] = None
 
 
 class TaskStatusResponse(BaseModel):
@@ -32,6 +40,8 @@ class TaskStatusResponse(BaseModel):
     created_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     error: Optional[str] = None
+    input_mode: Optional[str] = None
+    view_count: Optional[int] = None
 
 
 class TaskResultResponse(BaseModel):
@@ -41,6 +51,8 @@ class TaskResultResponse(BaseModel):
     format: str
     processing_time: float
     config: Dict[str, Any]
+    input_mode: str
+    view_count: int
 
 
 class HealthResponse(BaseModel):
@@ -58,6 +70,7 @@ class ModelInfo(BaseModel):
     name: str
     is_loaded: bool
     description: str
+    supports_multi_view: bool = False
 
 
 class ModelsResponse(BaseModel):

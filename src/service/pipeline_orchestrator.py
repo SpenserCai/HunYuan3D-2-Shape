@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 """
 推理流程编排器
+支持单图和多视图生成
 """
 
 import time
 import uuid
-from typing import Union, Optional
+from typing import Union, Optional, Dict
 from PIL import Image
 from pathlib import Path
 
-from .types import GenerationConfig, GenerationResult
+from .types import GenerationConfig, GenerationResult, InputMode, ModelType
 from .model_manager import ModelManager
 
 
@@ -31,6 +32,7 @@ class PipelineOrchestrator:
         self.model_manager = model_manager
         self.birefnet_path = birefnet_path
         self._background_remover = None
+        self._multi_view_processor = None
         self._mesh_optimizer = None
         self._format_converter = None
     
@@ -44,6 +46,16 @@ class PipelineOrchestrator:
                 device=self.model_manager.device
             )
         return self._background_remover
+    
+    @property
+    def multi_view_processor(self):
+        """延迟加载多视图处理器"""
+        if self._multi_view_processor is None:
+            from src.preprocessing import MultiViewProcessor
+            self._multi_view_processor = MultiViewProcessor(
+                background_remover=self.background_remover
+            )
+        return self._multi_view_processor
     
     @property
     def mesh_optimizer(self):
@@ -61,22 +73,67 @@ class PipelineOrchestrator:
             self._format_converter = FormatConverter()
         return self._format_converter
     
+    def _detect_input_mode(
+        self,
+        image: Union[str, Path, Image.Image, Dict]
+    ) -> InputMode:
+        """
+        自动检测输入模式
+        
+        Args:
+            image: 输入图像或视图字典
+            
+        Returns:
+            输入模式
+        """
+        if isinstance(image, dict):
+            return InputMode.MULTI_VIEW
+        return InputMode.SINGLE_IMAGE
+    
     def generate(
         self,
-        image: Union[str, Path, Image.Image],
+        image: Union[str, Path, Image.Image, Dict[str, Union[str, Path, Image.Image]]],
         config: Optional[GenerationConfig] = None
     ) -> GenerationResult:
         """
-        执行完整的生成流程
+        执行生成流程（支持单图和多视图）
         
         Args:
-            image: 输入图像（路径或 PIL Image）
+            image: 输入图像或多视图字典
+                   单图模式: str/Path/PIL.Image
+                   多视图模式: Dict[view_name, image]
             config: 生成配置
             
         Returns:
             生成结果
         """
         config = config or GenerationConfig()
+        
+        # 自动检测输入模式
+        if config.auto_detect_mode:
+            config.input_mode = self._detect_input_mode(image)
+        
+        # 根据模式选择生成方法
+        if config.input_mode == InputMode.MULTI_VIEW:
+            return self._generate_multi_view(image, config)
+        else:
+            return self._generate_single(image, config)
+    
+    def _generate_single(
+        self,
+        image: Union[str, Path, Image.Image],
+        config: GenerationConfig
+    ) -> GenerationResult:
+        """
+        单图生成流程
+        
+        Args:
+            image: 输入图像
+            config: 生成配置
+            
+        Returns:
+            生成结果
+        """
         task_id = str(uuid.uuid4())
         start_time = time.time()
         
@@ -89,8 +146,8 @@ class PipelineOrchestrator:
             preprocess_result = self.background_remover.process(image)
             image = preprocess_result["image"]
         
-        # 3. 推理
-        pipeline = self.model_manager.get_model()
+        # 3. 推理（使用 2.1 模型）
+        pipeline = self.model_manager.get_model(ModelType.HUNYUAN3D_2_1)
         mesh = pipeline(
             image=image,
             num_inference_steps=config.num_inference_steps,
@@ -113,7 +170,81 @@ class PipelineOrchestrator:
             mesh=mesh,
             task_id=task_id,
             processing_time=processing_time,
-            config=config
+            config=config,
+            input_mode=InputMode.SINGLE_IMAGE,
+            view_count=1
+        )
+    
+    def _generate_multi_view(
+        self,
+        images: Dict[str, Union[str, Path, Image.Image]],
+        config: GenerationConfig
+    ) -> GenerationResult:
+        """
+        多视图生成流程
+        
+        Args:
+            images: 视图字典 {view_name: image}
+            config: 生成配置
+            
+        Returns:
+            生成结果
+        """
+        task_id = str(uuid.uuid4())
+        start_time = time.time()
+        
+        # 验证输入
+        if not self.multi_view_processor.validate_views(images):
+            raise ValueError("Multi-view input must contain at least 'front' view")
+        
+        view_count = len(images)
+        
+        # 1. 多视图预处理
+        if config.remove_background:
+            preprocess_result = self.multi_view_processor.process(
+                images,
+                remove_background=True
+            )
+            processed_views = preprocess_result["views"]
+        else:
+            # 加载图像但不移除背景
+            processed_views = {}
+            for view_name, img in images.items():
+                if isinstance(img, (str, Path)):
+                    img = Image.open(img)
+                processed_views[view_name] = img
+        
+        # 2. 确保多视图模型已加载
+        if ModelType.HUNYUAN3D_2MV.value not in self.model_manager.loaded_models:
+            self.model_manager.load_model(ModelType.HUNYUAN3D_2MV)
+        
+        # 3. 推理（使用 2mv 模型，传入字典格式）
+        pipeline = self.model_manager.get_model(ModelType.HUNYUAN3D_2MV)
+        mesh = pipeline(
+            image=processed_views,  # 直接传入视图字典
+            num_inference_steps=config.num_inference_steps,
+            guidance_scale=config.guidance_scale,
+            octree_resolution=config.octree_resolution
+        )
+        
+        # pipeline 返回列表，取第一个
+        if isinstance(mesh, list):
+            mesh = mesh[0]
+        
+        # 4. 后处理
+        if config.optimize_mesh and mesh is not None:
+            self.mesh_optimizer.max_faces = config.max_faces
+            mesh = self.mesh_optimizer.process(mesh)
+        
+        processing_time = time.time() - start_time
+        
+        return GenerationResult(
+            mesh=mesh,
+            task_id=task_id,
+            processing_time=processing_time,
+            config=config,
+            input_mode=InputMode.MULTI_VIEW,
+            view_count=view_count
         )
     
     def unload_preprocessors(self):
@@ -121,3 +252,4 @@ class PipelineOrchestrator:
         if self._background_remover is not None:
             self._background_remover.unload()
             self._background_remover = None
+        self._multi_view_processor = None

@@ -11,14 +11,14 @@ from typing import Dict, Any
 from fastapi import APIRouter, HTTPException
 from PIL import Image
 
-from ..schemas.request import GenerateRequest
+from ..schemas.request import GenerateRequest, MultiViewGenerateRequest
 from ..schemas.response import (
     GenerateResponse,
     TaskStatusResponse,
     TaskResultResponse,
     TaskStatus
 )
-from src.service import GenerationConfig
+from src.service import GenerationConfig, InputMode
 
 router = APIRouter(prefix="/api/v1", tags=["generate"])
 
@@ -35,7 +35,7 @@ def get_service():
 @router.post("/generate", response_model=GenerateResponse)
 async def generate(request: GenerateRequest):
     """
-    提交 3D 生成任务
+    提交单图 3D 生成任务
     
     接收 Base64 编码的图像，返回任务 ID
     """
@@ -52,7 +52,9 @@ async def generate(request: GenerateRequest):
             remove_background=request.remove_background,
             optimize_mesh=request.optimize_mesh,
             max_faces=request.max_faces,
-            output_format=request.output_format
+            output_format=request.output_format,
+            input_mode=InputMode.SINGLE_IMAGE,
+            auto_detect_mode=False
         )
         
         # 获取服务实例
@@ -72,9 +74,88 @@ async def generate(request: GenerateRequest):
         return GenerateResponse(
             task_id=result.task_id,
             status=TaskStatus.COMPLETED,
-            message="Generation completed"
+            message="Generation completed",
+            input_mode=result.input_mode.value,
+            view_count=result.view_count
         )
         
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/generate/multi-view", response_model=GenerateResponse)
+async def generate_multi_view(request: MultiViewGenerateRequest):
+    """
+    提交多视图 3D 生成任务
+    
+    接收多个视角的 Base64 编码图像，返回任务 ID
+    
+    视角名称:
+    - front: 正面（必需）
+    - left: 左侧
+    - back: 背面
+    - right: 右侧
+    """
+    try:
+        # 验证至少有 front 视图
+        if 'front' not in request.views:
+            raise HTTPException(
+                status_code=400,
+                detail="Multi-view input must contain at least 'front' view"
+            )
+        
+        # 验证视角名称
+        valid_views = {'front', 'left', 'back', 'right'}
+        invalid_views = set(request.views.keys()) - valid_views
+        if invalid_views:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid view names: {invalid_views}. Must be one of {valid_views}"
+            )
+        
+        # 解码所有视图图像
+        images = {}
+        for view_name, image_base64 in request.views.items():
+            image_data = base64.b64decode(image_base64)
+            images[view_name] = Image.open(io.BytesIO(image_data))
+        
+        # 创建配置
+        config = GenerationConfig(
+            num_inference_steps=request.num_inference_steps,
+            guidance_scale=request.guidance_scale,
+            octree_resolution=request.octree_resolution,
+            remove_background=request.remove_background,
+            optimize_mesh=request.optimize_mesh,
+            max_faces=request.max_faces,
+            output_format=request.output_format,
+            input_mode=InputMode.MULTI_VIEW,
+            auto_detect_mode=False
+        )
+        
+        # 获取服务实例
+        service = get_service()
+        
+        # 执行多视图生成
+        result = service.generate(images, config)
+        
+        # 存储结果
+        _tasks[result.task_id] = {
+            "status": TaskStatus.COMPLETED,
+            "result": result,
+            "created_at": datetime.now(),
+            "completed_at": datetime.now()
+        }
+        
+        return GenerateResponse(
+            task_id=result.task_id,
+            status=TaskStatus.COMPLETED,
+            message=f"Multi-view generation completed with {result.view_count} views",
+            input_mode=result.input_mode.value,
+            view_count=result.view_count
+        )
+        
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -91,13 +172,16 @@ async def get_task_status(task_id: str):
         raise HTTPException(status_code=404, detail="Task not found")
     
     task = _tasks[task_id]
+    result = task.get("result")
     
     return TaskStatusResponse(
         task_id=task_id,
         status=task["status"],
         created_at=task.get("created_at"),
         completed_at=task.get("completed_at"),
-        error=task.get("error")
+        error=task.get("error"),
+        input_mode=result.input_mode.value if result else None,
+        view_count=result.view_count if result else None
     )
 
 
@@ -131,5 +215,7 @@ async def get_task_result(task_id: str):
         mesh_base64=mesh_base64,
         format=result.config.output_format,
         processing_time=result.processing_time,
-        config=result.config.to_dict()
+        config=result.config.to_dict(),
+        input_mode=result.input_mode.value,
+        view_count=result.view_count
     )

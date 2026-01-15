@@ -5,7 +5,15 @@
 """
 
 from .shape_service import ShapeGenerationService
-from .types import ModelType, GenerationConfig, GenerationResult, ServiceStatus
+from .types import (
+    ModelType,
+    GenerationConfig,
+    GenerationResult,
+    ServiceStatus,
+    InputMode,
+    ViewType,
+    MultiViewInput
+)
 from .model_manager import ModelManager
 from .pipeline_orchestrator import PipelineOrchestrator
 
@@ -15,6 +23,9 @@ __all__ = [
     'GenerationConfig',
     'GenerationResult',
     'ServiceStatus',
+    'InputMode',
+    'ViewType',
+    'MultiViewInput',
     'ModelManager',
     'PipelineOrchestrator',
 ]
