@@ -125,10 +125,12 @@ class GradioApp:
             "--port", str(port)
         ]
         
+        # 不捕获输出，避免缓冲区满导致阻塞
+        # 后端日志会直接输出到终端
         self.backend_process = subprocess.Popen(
             cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
+            stdout=None,  # 直接输出到终端
+            stderr=None   # 直接输出到终端
         )
         
         atexit.register(self._stop_backend_server)
