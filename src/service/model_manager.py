@@ -130,7 +130,7 @@ class ModelManager:
         """获取模型子目录"""
         subfolders = {
             ModelType.HUNYUAN3D_2_1: "hunyuan3d-dit-v2-1",
-            ModelType.HUNYUAN3D_2MV: "hunyuan3d-dit-v2-0-mv",
+            ModelType.HUNYUAN3D_2MV: "hunyuan3d-dit-v2-mv",
         }
         return subfolders[model_type]
     
