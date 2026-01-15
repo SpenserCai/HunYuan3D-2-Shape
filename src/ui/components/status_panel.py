@@ -47,11 +47,12 @@ def create_status_html(status_text: str, status_type: str = "normal") -> str:
     Returns:
         HTML 字符串
     """
+    # 统一风格的颜色方案 - 蓝色/绿色系
     colors = {
-        "connected": ("#10b981", "#d1fae5", "#065f46"),
-        "disconnected": ("#6b7280", "#f3f4f6", "#374151"),
-        "processing": ("#3b82f6", "#dbeafe", "#1e40af"),
-        "error": ("#ef4444", "#fee2e2", "#b91c1c")
+        "connected": ("#10b981", "#ecfdf5", "#065f46"),      # 绿色 - 已连接
+        "disconnected": ("#6b7280", "#f3f4f6", "#374151"),   # 灰色 - 未连接
+        "processing": ("#3b82f6", "#eff6ff", "#1e40af"),     # 蓝色 - 处理中
+        "error": ("#dc2626", "#fef2f2", "#991b1b")           # 红色 - 错误
     }
     
     dot_color, bg_color, text_color = colors.get(status_type, colors["disconnected"])
