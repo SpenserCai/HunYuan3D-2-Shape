@@ -1,0 +1,45 @@
+# Hunyuan3D Shape Generation 默认配置
+
+server:
+  host: "0.0.0.0"
+  api_port: 8000
+  ui_port: 7860
+
+models:
+  weights_dir: "weights"
+  default_model: "hunyuan3d-2.1"
+  auto_load: true
+  dtype: "float16"
+
+preprocessing:
+  birefnet:
+    enabled: true
+    model_path: "weights/BiRefNet"
+    image_size: 1024
+
+generation:
+  default:
+    num_inference_steps: 50
+    guidance_scale: 5.0
+    octree_resolution: 384
+
+postprocessing:
+  optimize_mesh: true
+  max_faces: 40000
+  remove_floaters: true
+
+# Output configuration
+output:
+  base_dir: "outputs"
+  mesh_subdir: "meshes"
+  preview_subdir: "previews"
+  temp_subdir: "temp"
+  # Supported formats: glb, gltf, obj, ply, stl
+  default_format: "glb"
+  # Whether to keep temporary files
+  keep_temp: false
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "logs/app.log"

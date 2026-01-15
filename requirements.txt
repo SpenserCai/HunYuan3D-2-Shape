@@ -1,0 +1,56 @@
+# ============================================
+# Hunyuan3D Shape Generation Dependencies
+# Compatible with Python 3.10+
+# ============================================
+
+# ============================================
+# Core Dependencies
+# ============================================
+
+# PyTorch (根据CUDA版本或mps选择)
+torch
+torchvision
+
+# Diffusion & Transformers
+diffusers
+transformers
+accelerate
+
+# ============================================
+# Image Processing
+# ============================================
+opencv-python
+Pillow
+einops
+scikit-image
+kornia
+timm
+
+# ============================================
+# Mesh Processing
+# ============================================
+trimesh
+pymeshlab
+pygltflib
+
+# ============================================
+# Configuration & Utils
+# ============================================
+omegaconf
+numpy
+tqdm
+pyyaml
+
+# ============================================
+# API Server
+# ============================================
+fastapi
+uvicorn[standard]
+pydantic
+python-multipart
+
+# ============================================
+# Model Loading
+# ============================================
+safetensors
+huggingface-hub

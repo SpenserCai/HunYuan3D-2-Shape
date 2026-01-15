@@ -1,0 +1,17 @@
+# 生产环境配置
+
+server:
+  host: "0.0.0.0"
+  api_port: 8000
+  ui_port: 7860
+
+models:
+  auto_load: true
+
+output:
+  base_dir: "/data/outputs"  # 生产环境使用独立数据目录
+  keep_temp: false
+
+logging:
+  level: "WARNING"
+  file: "/var/log/hunyuan3d/app.log"

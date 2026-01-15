@@ -1,0 +1,16 @@
+# 开发环境配置
+
+server:
+  host: "127.0.0.1"
+  api_port: 8000
+  ui_port: 7860
+
+models:
+  auto_load: false  # 开发时手动加载
+
+output:
+  base_dir: "outputs/dev"
+  keep_temp: true  # 开发时保留临时文件便于调试
+
+logging:
+  level: "DEBUG"

@@ -1,0 +1,97 @@
+# ============================================
+# Python
+# ============================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ============================================
+# Virtual Environment
+# ============================================
+venv/
+env/
+ENV/
+.venv/
+
+# ============================================
+# IDE & Editor
+# ============================================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# ============================================
+# Model Weights & Data
+# ============================================
+weights/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.bin
+
+# ============================================
+# Output & Generated Files
+# ============================================
+outputs/
+results/
+*.glb
+*.gltf
+*.obj
+*.ply
+*.stl
+
+# ============================================
+# Logs & Cache
+# ============================================
+logs/
+*.log
+.cache/
+.huggingface/
+
+# ============================================
+# Reference & Documentation (optional)
+# ============================================
+refs/
+dev_docs/
+
+# ============================================
+# OS Generated
+# ============================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ============================================
+# Temporary Files
+# ============================================
+tmp/
+temp/
+*.tmp
+*.temp
