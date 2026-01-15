@@ -137,54 +137,51 @@ class GradioApp:
     
     def build_interface(self) -> gr.Blocks:
         """
-        构建 Gradio 界面
+        构建 Gradio 界面 - 左右布局
         
         Returns:
             Gradio Blocks 应用
         """
-        # Gradio 6.0+ 需要在 launch() 中传递 theme 和 css
         with gr.Blocks(title="Hunyuan3D Shape Generation") as demo:
             # 标题
             gr.HTML(TITLE_HTML)
             
-            # 左右布局
-            with gr.Row(equal_height=False):
-                # 左侧面板 - 输入和设置
-                with gr.Column(scale=4, min_width=350):
+            # 主要内容区域 - 左右布局
+            with gr.Row():
+                # 左侧面板 - 输入和设置 (scale=3)
+                with gr.Column(scale=3):
                     # 状态面板
                     status_components = create_status_panel()
                     
                     # 输入模式选择
-                    with gr.Tabs() as input_tabs:
+                    with gr.Tabs(selected='tab_single') as input_tabs:
                         # 单图模式
-                        with gr.Tab("单图模式", id="single_mode"):
+                        with gr.Tab('单图模式', id='tab_single'):
                             single_image = create_single_image_input()
-                            single_generate_btn = gr.Button(
-                                "🚀 生成 3D 模型",
-                                variant="primary",
-                                elem_classes=["generate-btn"]
-                            )
                         
                         # 多视图模式
-                        with gr.Tab("多视图模式", id="multi_view_mode"):
+                        with gr.Tab('多视图模式', id='tab_multi_view'):
                             mv_images = create_multi_view_input()
-                            mv_generate_btn = gr.Button(
-                                "🚀 生成 3D 模型 (多视图)",
-                                variant="primary",
-                                elem_classes=["generate-btn"]
-                            )
+                    
+                    # 生成按钮
+                    with gr.Row():
+                        single_generate_btn = gr.Button(
+                            "🚀 生成 3D 模型",
+                            variant="primary",
+                            elem_classes=["generate-btn"]
+                        )
                     
                     # 设置面板
                     settings = create_settings_panel()
                 
-                # 右侧面板 - 预览和结果
-                with gr.Column(scale=6, min_width=500):
-                    with gr.Tabs() as output_tabs:
-                        with gr.Tab("3D 预览", id="preview_tab"):
+                # 右侧面板 - 预览和结果 (scale=6)
+                with gr.Column(scale=6):
+                    with gr.Tabs(selected='preview_tab') as output_tabs:
+                        with gr.Tab('3D 预览', id='preview_tab'):
                             # 使用 Gradio 内置的 Model3D 组件
                             model_3d = gr.Model3D(
                                 label="3D 模型预览",
-                                height=550,
+                                height=580,
                                 clear_color=[0.1, 0.1, 0.15, 1.0],
                                 elem_classes=["model-viewer-container"]
                             )
@@ -194,19 +191,20 @@ class GradioApp:
                                 value="*上传图像并点击生成按钮开始创建 3D 模型*",
                                 elem_classes=["status-text"]
                             )
-                            
-                            with gr.Row():
-                                download_file = gr.File(
-                                    label="下载模型文件",
-                                    visible=True,
-                                    interactive=False
-                                )
                         
-                        with gr.Tab("生成统计", id="stats_tab"):
+                        with gr.Tab('生成统计', id='stats_tab'):
                             stats_output = gr.JSON(
                                 label="生成统计信息",
                                 value={}
                             )
+                    
+                    # 下载区域
+                    with gr.Row():
+                        download_file = gr.File(
+                            label="下载模型文件",
+                            visible=True,
+                            interactive=False
+                        )
             
             # 页脚
             gr.HTML(FOOTER_HTML)
@@ -231,32 +229,36 @@ class GradioApp:
                 ]
             )
             
-            # 单图生成
+            # 根据当前 Tab 选择生成模式
+            def get_generation_fn(
+                single_img, 
+                mv_front, mv_back, mv_left, mv_right,
+                steps, guidance, octree_res, remove_bg, optimize, max_f, out_fmt,
+                progress=gr.Progress()
+            ):
+                """根据输入判断使用单图还是多视图生成"""
+                # 如果有多视图输入，使用多视图生成
+                if mv_front is not None or mv_back is not None or mv_left is not None or mv_right is not None:
+                    return self._generate_multi_view_wrapper(
+                        mv_front, mv_back, mv_left, mv_right,
+                        steps, guidance, octree_res, remove_bg, optimize, max_f, out_fmt,
+                        progress
+                    )
+                # 否则使用单图生成
+                return self._generate_single_wrapper(
+                    single_img,
+                    steps, guidance, octree_res, remove_bg, optimize, max_f, out_fmt,
+                    progress
+                )
+            
+            # 生成按钮事件
             single_generate_btn.click(
                 fn=lambda: (None, None, "⏳ *正在生成 3D 模型，请稍候...*", {}),
                 outputs=[model_3d, download_file, status_text, stats_output]
             ).then(
-                fn=self._generate_single_wrapper,
+                fn=get_generation_fn,
                 inputs=[
                     single_image,
-                    settings['num_inference_steps'],
-                    settings['guidance_scale'],
-                    settings['octree_resolution'],
-                    settings['remove_background'],
-                    settings['optimize_mesh'],
-                    settings['max_faces'],
-                    settings['output_format']
-                ],
-                outputs=[model_3d, download_file, status_text, stats_output]
-            )
-            
-            # 多视图生成
-            mv_generate_btn.click(
-                fn=lambda: (None, None, "⏳ *正在生成 3D 模型 (多视图)，请稍候...*", {}),
-                outputs=[model_3d, download_file, status_text, stats_output]
-            ).then(
-                fn=self._generate_multi_view_wrapper,
-                inputs=[
                     mv_images['front'],
                     mv_images['back'],
                     mv_images['left'],
