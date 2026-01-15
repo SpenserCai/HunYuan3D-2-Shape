@@ -118,10 +118,16 @@ class GradioApp:
         
         if response.success:
             data = response.data
+            status = data.get("status", "unknown")
             is_ready = data.get("is_ready", False)
+            loaded_models = data.get("loaded_models", [])
             
-            if is_ready:
-                status_html = create_status_html("服务就绪", "connected")
+            # 服务已连接，根据模型加载状态显示不同信息
+            if is_ready and loaded_models:
+                status_html = create_status_html(f"服务就绪 ({len(loaded_models)} 模型已加载)", "connected")
+            elif status == "healthy" or status == "not_ready":
+                # 服务已启动但模型未加载
+                status_html = create_status_html("服务已连接 (模型加载中...)", "processing")
             else:
                 status_html = create_status_html("服务未就绪", "disconnected")
             
@@ -136,20 +142,15 @@ class GradioApp:
         Returns:
             Gradio Blocks 应用
         """
-        with gr.Blocks(
-            title="Hunyuan3D Shape Generation",
-            theme=gr.themes.Soft(
-                primary_hue="indigo",
-                secondary_hue="purple"
-            ),
-            css=CUSTOM_CSS
-        ) as demo:
+        # Gradio 6.0+ 需要在 launch() 中传递 theme 和 css
+        with gr.Blocks(title="Hunyuan3D Shape Generation") as demo:
             # 标题
             gr.HTML(TITLE_HTML)
             
-            with gr.Row():
+            # 左右布局
+            with gr.Row(equal_height=False):
                 # 左侧面板 - 输入和设置
-                with gr.Column(scale=4):
+                with gr.Column(scale=4, min_width=350):
                     # 状态面板
                     status_components = create_status_panel()
                     
@@ -177,13 +178,13 @@ class GradioApp:
                     settings = create_settings_panel()
                 
                 # 右侧面板 - 预览和结果
-                with gr.Column(scale=6):
+                with gr.Column(scale=6, min_width=500):
                     with gr.Tabs() as output_tabs:
                         with gr.Tab("3D 预览", id="preview_tab"):
                             # 使用 Gradio 内置的 Model3D 组件
                             model_3d = gr.Model3D(
                                 label="3D 模型预览",
-                                height=500,
+                                height=550,
                                 clear_color=[0.1, 0.1, 0.15, 1.0],
                                 elem_classes=["model-viewer-container"]
                             )
@@ -467,6 +468,7 @@ def launch_app(
         weights_dir=weights_dir
     )
     
+    # Gradio 6.0+ 需要在 launch() 中传递 theme 和 css
     demo.launch(
         server_name=host,
         server_port=port,
