@@ -25,35 +25,35 @@ from .components.status_panel import (
 )
 
 
-# 自定义 CSS - 美观的左右布局
+# 自定义 CSS - 全屏宽敞布局
 CUSTOM_CSS = """
-/* 容器宽度 - 更宽 */
+/* 全屏宽度 */
 .gradio-container {
-    max-width: 1600px !important;
-    margin: 0 auto !important;
-    padding: 20px 40px !important;
+    max-width: 100% !important;
+    padding: 20px 50px !important;
 }
 
-/* 主布局行 */
+/* 主布局行 - 更大间距 */
 .main-row {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
-    gap: 30px !important;
-    padding: 10px 0 !important;
+    gap: 40px !important;
+    padding: 20px 0 !important;
+    align-items: flex-start !important;
 }
 
-/* 左侧列 - 输入区域 */
+/* 左侧列 - 固定宽度 */
 .left-column {
-    flex: 0 0 380px !important;
-    min-width: 350px !important;
-    max-width: 420px !important;
+    flex: 0 0 420px !important;
+    min-width: 400px !important;
+    max-width: 450px !important;
 }
 
-/* 右侧列 - 预览区域 */
+/* 右侧列 - 自适应填充 */
 .right-column {
     flex: 1 1 auto !important;
-    min-width: 600px !important;
+    min-width: 700px !important;
 }
 
 /* 多视图图像样式 */
@@ -64,21 +64,17 @@ CUSTOM_CSS = """
     width: 20px;
 }
 
-/* 3D 预览区域更大 */
+/* 3D 预览区域 */
 .model-preview {
-    min-height: 500px !important;
+    min-height: 600px !important;
 }
 
-/* 按钮样式 */
+/* 生成按钮 */
 .generate-btn {
-    margin: 15px 0 !important;
-    padding: 12px !important;
-    font-size: 16px !important;
-}
-
-/* 设置面板间距 */
-.settings-accordion {
-    margin-top: 10px !important;
+    margin: 20px 0 !important;
+    padding: 14px 24px !important;
+    font-size: 17px !important;
+    font-weight: 600 !important;
 }
 """
 
@@ -181,7 +177,8 @@ class GradioApp:
         
         # Gradio 6.0+: theme 和 css 需要在 launch() 中传递
         with gr.Blocks(
-            title="Hunyuan3D Shape Generation"
+            title="Hunyuan3D Shape Generation",
+            fill_width=True  # 使用全屏宽度
         ) as demo:
             # 标题 - 跨越整个宽度
             gr.HTML(TITLE_HTML)
@@ -189,7 +186,7 @@ class GradioApp:
             # 主要内容区域 - 左右布局
             with gr.Row(equal_height=False, elem_classes=["main-row"]):
                 # ========== 左侧面板 - 输入和设置 ==========
-                with gr.Column(scale=3, min_width=350, elem_classes=["left-column"]):
+                with gr.Column(scale=2, min_width=400, elem_classes=["left-column"]):
                     # 状态面板
                     status_components = create_status_panel()
                     
@@ -205,19 +202,20 @@ class GradioApp:
                     generate_btn = gr.Button(
                         "🚀 生成 3D 模型",
                         variant="primary",
-                        elem_classes=["generate-btn"]
+                        elem_classes=["generate-btn"],
+                        size="lg"
                     )
                     
                     # 设置面板
                     settings = create_settings_panel()
                 
                 # ========== 右侧面板 - 预览和结果 ==========
-                with gr.Column(scale=6, min_width=600, elem_classes=["right-column"]):
+                with gr.Column(scale=5, min_width=700, elem_classes=["right-column"]):
                     with gr.Tabs(selected='preview_tab') as output_tabs:
                         with gr.Tab('3D 预览', id='preview_tab'):
                             model_3d = gr.Model3D(
                                 label="3D 模型预览",
-                                height=550,
+                                height=620,
                                 clear_color=[0.1, 0.1, 0.15, 1.0],
                                 elem_classes=["model-preview"]
                             )
