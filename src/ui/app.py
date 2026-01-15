@@ -320,16 +320,13 @@ class GradioApp:
         remove_background: bool,
         optimize_mesh: bool,
         max_faces: int,
-        output_format: str,
-        progress=gr.Progress()
+        output_format: str
     ) -> Tuple[Optional[str], Optional[str], str, Dict]:
         """单图生成"""
         if image is None:
             return None, None, "❌ *请上传图像*", {"错误": "请上传图像"}
         
         try:
-            progress(0.1, desc="正在上传图像...")
-            
             response = self.client.generate_single(
                 image=image,
                 num_inference_steps=int(num_inference_steps),
@@ -344,15 +341,11 @@ class GradioApp:
             if not response.success:
                 return None, None, f"❌ *生成失败: {response.error}*", {"错误": response.error}
             
-            progress(0.7, desc="正在获取结果...")
-            
             task_id = response.data.get("task_id")
             result_response = self.client.get_task_result(task_id)
             
             if not result_response.success:
                 return None, None, f"❌ *获取结果失败: {result_response.error}*", {"错误": result_response.error}
-            
-            progress(0.9, desc="正在处理模型...")
             
             result_data = result_response.data
             mesh_bytes = base64.b64decode(result_data["mesh_base64"])
@@ -368,7 +361,6 @@ class GradioApp:
                 "输出格式": result_data.get("format", output_format)
             }
             
-            progress(1.0, desc="完成!")
             return output_path, output_path, "✅ *生成完成！可以在上方预览和下载模型*", stats
             
         except Exception as e:
@@ -386,8 +378,7 @@ class GradioApp:
         remove_background: bool,
         optimize_mesh: bool,
         max_faces: int,
-        output_format: str,
-        progress=gr.Progress()
+        output_format: str
     ) -> Tuple[Optional[str], Optional[str], str, Dict]:
         """多视图生成"""
         if front_image is None:
@@ -402,8 +393,6 @@ class GradioApp:
             views["right"] = right_image
         
         try:
-            progress(0.1, desc=f"正在上传 {len(views)} 个视图...")
-            
             response = self.client.generate_multi_view(
                 views=views,
                 num_inference_steps=int(num_inference_steps),
@@ -418,15 +407,11 @@ class GradioApp:
             if not response.success:
                 return None, None, f"❌ *生成失败: {response.error}*", {"错误": response.error}
             
-            progress(0.7, desc="正在获取结果...")
-            
             task_id = response.data.get("task_id")
             result_response = self.client.get_task_result(task_id)
             
             if not result_response.success:
                 return None, None, f"❌ *获取结果失败: {result_response.error}*", {"错误": result_response.error}
-            
-            progress(0.9, desc="正在处理模型...")
             
             result_data = result_response.data
             mesh_bytes = base64.b64decode(result_data["mesh_base64"])
@@ -443,7 +428,6 @@ class GradioApp:
                 "输出格式": result_data.get("format", output_format)
             }
             
-            progress(1.0, desc="完成!")
             return output_path, output_path, "✅ *生成完成！可以在上方预览和下载模型*", stats
             
         except Exception as e:
