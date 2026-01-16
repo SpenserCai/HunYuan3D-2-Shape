@@ -439,26 +439,18 @@ class GradioApp:
             result_data = result_response.data
             mesh_bytes = base64.b64decode(result_data["mesh_base64"])
             
-            # 保存到静态目录用于预览和下载
-            # 使用 .glb 格式以确保 model-viewer 兼容性
-            glb_filename = f"{task_id}.glb"
-            glb_path = os.path.join(self.static_dir, glb_filename)
-            with open(glb_path, "wb") as f:
+            # 保存到临时目录用于下载
+            download_filename = f"{task_id}.{output_format}"
+            download_path = os.path.join(self.temp_dir, download_filename)
+            with open(download_path, "wb") as f:
                 f.write(mesh_bytes)
-            glb_path = os.path.abspath(glb_path)
+            download_path = os.path.abspath(download_path)
             
-            # 同时保存用户请求的格式用于下载
-            if output_format != "glb":
-                download_path = os.path.join(self.temp_dir, f"{task_id}.{output_format}")
-                with open(download_path, "wb") as f:
-                    f.write(mesh_bytes)
-                download_path = os.path.abspath(download_path)
-            else:
-                download_path = glb_path
-            
-            # 构建 model-viewer HTML (使用 Gradio 文件路径)
-            # Gradio 会自动处理 /file= 路径
-            viewer_html = self._build_model_viewer_html(f"/file={glb_path}")
+            # 构建 model-viewer HTML (使用 data URL 方式嵌入模型)
+            # 这种方式最可靠，不依赖文件服务配置
+            mesh_base64 = result_data["mesh_base64"]
+            model_data_url = f"data:model/gltf-binary;base64,{mesh_base64}"
+            viewer_html = self._build_model_viewer_html(model_data_url)
             
             stats = {
                 "任务 ID": task_id,
@@ -523,25 +515,17 @@ class GradioApp:
             result_data = result_response.data
             mesh_bytes = base64.b64decode(result_data["mesh_base64"])
             
-            # 保存到静态目录用于预览和下载
-            # 使用 .glb 格式以确保 model-viewer 兼容性
-            glb_filename = f"{task_id}.glb"
-            glb_path = os.path.join(self.static_dir, glb_filename)
-            with open(glb_path, "wb") as f:
+            # 保存到临时目录用于下载
+            download_filename = f"{task_id}.{output_format}"
+            download_path = os.path.join(self.temp_dir, download_filename)
+            with open(download_path, "wb") as f:
                 f.write(mesh_bytes)
-            glb_path = os.path.abspath(glb_path)
+            download_path = os.path.abspath(download_path)
             
-            # 同时保存用户请求的格式用于下载
-            if output_format != "glb":
-                download_path = os.path.join(self.temp_dir, f"{task_id}.{output_format}")
-                with open(download_path, "wb") as f:
-                    f.write(mesh_bytes)
-                download_path = os.path.abspath(download_path)
-            else:
-                download_path = glb_path
-            
-            # 构建 model-viewer HTML (使用 Gradio 文件路径)
-            viewer_html = self._build_model_viewer_html(f"/file={glb_path}")
+            # 构建 model-viewer HTML (使用 data URL 方式嵌入模型)
+            mesh_base64 = result_data["mesh_base64"]
+            model_data_url = f"data:model/gltf-binary;base64,{mesh_base64}"
+            viewer_html = self._build_model_viewer_html(model_data_url)
             
             stats = {
                 "任务 ID": task_id,
@@ -596,8 +580,6 @@ def launch_app(
     
     demo = app_instance.build_interface()
     
-    # Gradio 6.0+: theme 和 css 在 launch() 中传递
-    # allowed_paths 允许访问静态模型目录
     demo.launch(
         server_name=host,
         server_port=port,
@@ -605,5 +587,5 @@ def launch_app(
         show_error=True,
         theme=gr.themes.Base(),
         css=CUSTOM_CSS,
-        allowed_paths=[app_instance.static_dir, app_instance.temp_dir]
+        allowed_paths=[app_instance.temp_dir]
     )
