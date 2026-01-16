@@ -10,6 +10,7 @@ import base64
 import time
 import subprocess
 import atexit
+import shutil
 from typing import Optional, Dict, Any, Tuple
 
 import gradio as gr
@@ -90,6 +91,64 @@ TITLE_HTML = """
 </div>
 """
 
+# 3D 模型预览占位符 HTML
+MODEL_VIEWER_PLACEHOLDER = """
+<div style="
+    height: 600px; 
+    width: 100%; 
+    border-radius: 12px; 
+    border: 2px dashed #374151; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+">
+    <div style="text-align: center; padding: 40px;">
+        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="1.5" style="margin-bottom: 16px;">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+            <line x1="12" y1="22.08" x2="12" y2="12"/>
+        </svg>
+        <p style="color: #9ca3af; font-size: 18px; font-weight: 500; margin: 0 0 8px 0;">
+            欢迎使用 Hunyuan3D
+        </p>
+        <p style="color: #6b7280; font-size: 14px; margin: 0;">
+            上传图像并点击生成按钮开始创建 3D 模型
+        </p>
+    </div>
+</div>
+"""
+
+# model-viewer HTML 模板
+MODEL_VIEWER_TEMPLATE = """
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.1.1/dist/model-viewer.min.js" type="module"></script>
+    <style>
+        body {{ margin: 0; background: #1a1a2e; }}
+        .container {{ display: flex; justify-content: center; align-items: center; height: 100vh; }}
+        model-viewer {{ width: 100%; height: 100%; --poster-color: transparent; }}
+    </style>
+</head>
+<body>
+<div class="container">
+    <model-viewer 
+        id="viewer"
+        src="{model_path}"
+        camera-controls
+        auto-rotate
+        rotation-per-second="30deg"
+        shadow-intensity="1"
+        environment-image="neutral"
+        camera-orbit="0deg 75deg 105%"
+        ar
+    ></model-viewer>
+</div>
+</body>
+</html>
+"""
+
 
 class GradioApp:
     """Gradio 应用类"""
@@ -105,6 +164,9 @@ class GradioApp:
         self.weights_dir = weights_dir
         self.client = ShapeAPIClient(api_url)
         self.backend_process = None
+        # 使用固定的静态文件目录
+        self.static_dir = os.path.join(os.path.dirname(__file__), "static_models")
+        os.makedirs(self.static_dir, exist_ok=True)
         self.temp_dir = tempfile.mkdtemp(prefix="hunyuan3d_ui_")
         
     def _start_backend_server(self):
@@ -152,6 +214,36 @@ class GradioApp:
             self.backend_process.terminate()
             self.backend_process.wait()
             print("后端服务器已停止")
+    
+    def _build_model_viewer_html(self, model_path: str, height: int = 600) -> str:
+        """
+        构建 model-viewer HTML
+        
+        Args:
+            model_path: 模型文件的 URL 路径（可以是 data URL 或文件路径）
+            height: 查看器高度
+            
+        Returns:
+            HTML 字符串
+        """
+        # 注意：script 标签必须在 model-viewer 之前加载
+        return f"""
+        <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.1.1/dist/model-viewer.min.js"></script>
+        <div style="height: {height}px; width: 100%; border-radius: 12px; overflow: hidden; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);">
+            <model-viewer
+                src="{model_path}"
+                alt="3D Model"
+                auto-rotate
+                rotation-per-second="30deg"
+                camera-controls
+                shadow-intensity="1"
+                exposure="0.8"
+                environment-image="neutral"
+                camera-orbit="0deg 75deg 105%"
+                style="width: 100%; height: 100%;"
+            ></model-viewer>
+        </div>
+        """
     
     def check_health(self) -> Tuple[str, Dict]:
         """检查服务健康状态"""
@@ -217,10 +309,10 @@ class GradioApp:
                 with gr.Column(scale=5, min_width=700, elem_classes=["right-column"]):
                     with gr.Tabs(selected='preview_tab') as output_tabs:
                         with gr.Tab('3D 预览', id='preview_tab'):
-                            model_3d = gr.Model3D(
+                            # 使用 HTML 组件 + model-viewer (WebGL) 代替 gr.Model3D (WebGPU)
+                            model_viewer_html = gr.HTML(
+                                value=MODEL_VIEWER_PLACEHOLDER,
                                 label="3D 模型预览",
-                                height=620,
-                                clear_color=[0.1, 0.1, 0.15, 1.0],
                                 elem_classes=["model-preview"]
                             )
                             status_text = gr.Markdown(
@@ -270,7 +362,7 @@ class GradioApp:
                 # 只检查服务是否连通（模型会在第一次请求时懒加载）
                 health_response = self.client.health_check()
                 if not health_response.success:
-                    return None, None, f"❌ *服务未连接: {health_response.error}*", {"错误": health_response.error}
+                    return MODEL_VIEWER_PLACEHOLDER, None, f"❌ *服务未连接: {health_response.error}*", {"错误": health_response.error}
                 
                 # 判断使用单图还是多视图
                 if mv_front is not None or mv_back is not None or mv_left is not None or mv_right is not None:
@@ -285,8 +377,8 @@ class GradioApp:
             
             # 生成按钮事件
             generate_btn.click(
-                fn=lambda: (None, None, "⏳ *正在生成 3D 模型，请稍候...*", {}),
-                outputs=[model_3d, download_file, status_text, stats_output]
+                fn=lambda: (MODEL_VIEWER_PLACEHOLDER, None, "⏳ *正在生成 3D 模型，请稍候...*", {}),
+                outputs=[model_viewer_html, download_file, status_text, stats_output]
             ).then(
                 fn=do_generate,
                 inputs=[
@@ -303,7 +395,7 @@ class GradioApp:
                     settings['max_faces'],
                     settings['output_format']
                 ],
-                outputs=[model_3d, download_file, status_text, stats_output]
+                outputs=[model_viewer_html, download_file, status_text, stats_output]
             )
         
         return demo
@@ -321,7 +413,7 @@ class GradioApp:
     ) -> Tuple[Optional[str], Optional[str], str, Dict]:
         """单图生成"""
         if image is None:
-            return None, None, "❌ *请上传图像*", {"错误": "请上传图像"}
+            return MODEL_VIEWER_PLACEHOLDER, None, "❌ *请上传图像*", {"错误": "请上传图像"}
         
         try:
             response = self.client.generate_single(
@@ -336,37 +428,50 @@ class GradioApp:
             )
             
             if not response.success:
-                return None, None, f"❌ *生成失败: {response.error}*", {"错误": response.error}
+                return MODEL_VIEWER_PLACEHOLDER, None, f"❌ *生成失败: {response.error}*", {"错误": response.error}
             
             task_id = response.data.get("task_id")
             result_response = self.client.get_task_result(task_id)
             
             if not result_response.success:
-                return None, None, f"❌ *获取结果失败: {result_response.error}*", {"错误": result_response.error}
+                return MODEL_VIEWER_PLACEHOLDER, None, f"❌ *获取结果失败: {result_response.error}*", {"错误": result_response.error}
             
             result_data = result_response.data
             mesh_bytes = base64.b64decode(result_data["mesh_base64"])
-            output_path = os.path.join(self.temp_dir, f"{task_id}.{output_format}")
             
-            with open(output_path, "wb") as f:
+            # 保存到静态目录用于预览和下载
+            # 使用 .glb 格式以确保 model-viewer 兼容性
+            glb_filename = f"{task_id}.glb"
+            glb_path = os.path.join(self.static_dir, glb_filename)
+            with open(glb_path, "wb") as f:
                 f.write(mesh_bytes)
+            glb_path = os.path.abspath(glb_path)
             
-            # 确保返回绝对路径
-            output_path = os.path.abspath(output_path)
+            # 同时保存用户请求的格式用于下载
+            if output_format != "glb":
+                download_path = os.path.join(self.temp_dir, f"{task_id}.{output_format}")
+                with open(download_path, "wb") as f:
+                    f.write(mesh_bytes)
+                download_path = os.path.abspath(download_path)
+            else:
+                download_path = glb_path
+            
+            # 构建 model-viewer HTML (使用 Gradio 文件路径)
+            # Gradio 会自动处理 /file= 路径
+            viewer_html = self._build_model_viewer_html(f"/file={glb_path}")
             
             stats = {
                 "任务 ID": task_id,
                 "处理时间": f"{result_data.get('processing_time', 0):.2f} 秒",
                 "输入模式": result_data.get("input_mode", "single"),
                 "输出格式": result_data.get("format", output_format),
-                "文件路径": output_path,
-                "文件大小": f"{os.path.getsize(output_path) / 1024:.1f} KB"
+                "文件大小": f"{len(mesh_bytes) / 1024:.1f} KB"
             }
             
-            return output_path, output_path, "✅ *生成完成！可以在上方预览和下载模型*", stats
+            return viewer_html, download_path, "✅ *生成完成！可以在上方预览和下载模型*", stats
             
         except Exception as e:
-            return None, None, f"❌ *发生错误: {str(e)}*", {"错误": str(e)}
+            return MODEL_VIEWER_PLACEHOLDER, None, f"❌ *发生错误: {str(e)}*", {"错误": str(e)}
     
     def _generate_multi_view(
         self,
@@ -384,7 +489,7 @@ class GradioApp:
     ) -> Tuple[Optional[str], Optional[str], str, Dict]:
         """多视图生成"""
         if front_image is None:
-            return None, None, "❌ *请至少上传正面视图图像*", {"错误": "请至少上传正面视图图像"}
+            return MODEL_VIEWER_PLACEHOLDER, None, "❌ *请至少上传正面视图图像*", {"错误": "请至少上传正面视图图像"}
         
         views = {"front": front_image}
         if back_image is not None:
@@ -407,23 +512,36 @@ class GradioApp:
             )
             
             if not response.success:
-                return None, None, f"❌ *生成失败: {response.error}*", {"错误": response.error}
+                return MODEL_VIEWER_PLACEHOLDER, None, f"❌ *生成失败: {response.error}*", {"错误": response.error}
             
             task_id = response.data.get("task_id")
             result_response = self.client.get_task_result(task_id)
             
             if not result_response.success:
-                return None, None, f"❌ *获取结果失败: {result_response.error}*", {"错误": result_response.error}
+                return MODEL_VIEWER_PLACEHOLDER, None, f"❌ *获取结果失败: {result_response.error}*", {"错误": result_response.error}
             
             result_data = result_response.data
             mesh_bytes = base64.b64decode(result_data["mesh_base64"])
-            output_path = os.path.join(self.temp_dir, f"{task_id}.{output_format}")
             
-            with open(output_path, "wb") as f:
+            # 保存到静态目录用于预览和下载
+            # 使用 .glb 格式以确保 model-viewer 兼容性
+            glb_filename = f"{task_id}.glb"
+            glb_path = os.path.join(self.static_dir, glb_filename)
+            with open(glb_path, "wb") as f:
                 f.write(mesh_bytes)
+            glb_path = os.path.abspath(glb_path)
             
-            # 确保返回绝对路径
-            output_path = os.path.abspath(output_path)
+            # 同时保存用户请求的格式用于下载
+            if output_format != "glb":
+                download_path = os.path.join(self.temp_dir, f"{task_id}.{output_format}")
+                with open(download_path, "wb") as f:
+                    f.write(mesh_bytes)
+                download_path = os.path.abspath(download_path)
+            else:
+                download_path = glb_path
+            
+            # 构建 model-viewer HTML (使用 Gradio 文件路径)
+            viewer_html = self._build_model_viewer_html(f"/file={glb_path}")
             
             stats = {
                 "任务 ID": task_id,
@@ -431,14 +549,13 @@ class GradioApp:
                 "输入模式": "multi_view",
                 "视图数量": result_data.get("view_count", len(views)),
                 "输出格式": result_data.get("format", output_format),
-                "文件路径": output_path,
-                "文件大小": f"{os.path.getsize(output_path) / 1024:.1f} KB"
+                "文件大小": f"{len(mesh_bytes) / 1024:.1f} KB"
             }
             
-            return output_path, output_path, "✅ *生成完成！可以在上方预览和下载模型*", stats
+            return viewer_html, download_path, "✅ *生成完成！可以在上方预览和下载模型*", stats
             
         except Exception as e:
-            return None, None, f"❌ *发生错误: {str(e)}*", {"错误": str(e)}
+            return MODEL_VIEWER_PLACEHOLDER, None, f"❌ *发生错误: {str(e)}*", {"错误": str(e)}
 
 
 def create_app(
@@ -468,18 +585,25 @@ def launch_app(
     share: bool = False
 ):
     """启动 Gradio 应用"""
-    demo = create_app(
+    app_instance = GradioApp(
         api_url=api_url,
         start_backend=start_backend,
         weights_dir=weights_dir
     )
     
+    if start_backend:
+        app_instance._start_backend_server()
+    
+    demo = app_instance.build_interface()
+    
     # Gradio 6.0+: theme 和 css 在 launch() 中传递
+    # allowed_paths 允许访问静态模型目录
     demo.launch(
         server_name=host,
         server_port=port,
         share=share,
         show_error=True,
         theme=gr.themes.Base(),
-        css=CUSTOM_CSS
+        css=CUSTOM_CSS,
+        allowed_paths=[app_instance.static_dir, app_instance.temp_dir]
     )
