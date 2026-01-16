@@ -35,6 +35,8 @@ class PipelineOrchestrator:
         self._multi_view_processor = None
         self._mesh_optimizer = None
         self._format_converter = None
+        self._lighting_normalizer = None
+        self._advanced_mesh_optimizer = None
     
     @property
     def background_remover(self):
@@ -58,12 +60,28 @@ class PipelineOrchestrator:
         return self._multi_view_processor
     
     @property
+    def lighting_normalizer(self):
+        """延迟加载光照校正器"""
+        if self._lighting_normalizer is None:
+            from src.preprocessing import LightingNormalizer
+            self._lighting_normalizer = LightingNormalizer()
+        return self._lighting_normalizer
+    
+    @property
     def mesh_optimizer(self):
         """延迟加载 Mesh 优化器"""
         if self._mesh_optimizer is None:
             from src.postprocessing import MeshOptimizer
             self._mesh_optimizer = MeshOptimizer()
         return self._mesh_optimizer
+    
+    @property
+    def advanced_mesh_optimizer(self):
+        """延迟加载高级 Mesh 优化器"""
+        if self._advanced_mesh_optimizer is None:
+            from src.postprocessing import AdvancedMeshOptimizer
+            self._advanced_mesh_optimizer = AdvancedMeshOptimizer()
+        return self._advanced_mesh_optimizer
     
     @property
     def format_converter(self):
@@ -160,9 +178,24 @@ class PipelineOrchestrator:
             mesh = mesh[0]
         
         # 4. 后处理
-        if config.optimize_mesh and mesh is not None:
-            self.mesh_optimizer.max_faces = config.max_faces
-            mesh = self.mesh_optimizer.process(mesh)
+        if mesh is not None:
+            # 4.1 基础优化
+            if config.optimize_mesh:
+                self.mesh_optimizer.max_faces = config.max_faces
+                mesh = self.mesh_optimizer.process(mesh)
+            
+            # 4.2 高级优化（如果启用）
+            if any([config.fill_holes, config.make_watertight, 
+                    config.smooth_surface, config.recalculate_normals]):
+                mesh = self.advanced_mesh_optimizer.process(
+                    mesh,
+                    fill_holes=config.fill_holes,
+                    max_hole_size=config.max_hole_size,
+                    make_watertight=config.make_watertight,
+                    smooth_surface=config.smooth_surface,
+                    smooth_iterations=config.smooth_iterations,
+                    recalculate_normals=config.recalculate_normals
+                )
         
         processing_time = time.time() - start_time
         
@@ -214,6 +247,13 @@ class PipelineOrchestrator:
                     img = Image.open(img)
                 processed_views[view_name] = img
         
+        # 1.5 光照一致性校正（如果启用）
+        if config.normalize_lighting and len(processed_views) > 1:
+            self.lighting_normalizer.method = config.lighting_method
+            self.lighting_normalizer.strength = config.lighting_strength
+            lighting_result = self.lighting_normalizer.process(processed_views)
+            processed_views = lighting_result["views"]
+        
         # 2. 确保多视图模型已加载
         if ModelType.HUNYUAN3D_2MV.value not in self.model_manager.loaded_models:
             self.model_manager.load_model(ModelType.HUNYUAN3D_2MV)
@@ -232,9 +272,24 @@ class PipelineOrchestrator:
             mesh = mesh[0]
         
         # 4. 后处理
-        if config.optimize_mesh and mesh is not None:
-            self.mesh_optimizer.max_faces = config.max_faces
-            mesh = self.mesh_optimizer.process(mesh)
+        if mesh is not None:
+            # 4.1 基础优化
+            if config.optimize_mesh:
+                self.mesh_optimizer.max_faces = config.max_faces
+                mesh = self.mesh_optimizer.process(mesh)
+            
+            # 4.2 高级优化（如果启用）
+            if any([config.fill_holes, config.make_watertight, 
+                    config.smooth_surface, config.recalculate_normals]):
+                mesh = self.advanced_mesh_optimizer.process(
+                    mesh,
+                    fill_holes=config.fill_holes,
+                    max_hole_size=config.max_hole_size,
+                    make_watertight=config.make_watertight,
+                    smooth_surface=config.smooth_surface,
+                    smooth_iterations=config.smooth_iterations,
+                    recalculate_normals=config.recalculate_normals
+                )
         
         processing_time = time.time() - start_time
         
@@ -253,3 +308,5 @@ class PipelineOrchestrator:
             self._background_remover.unload()
             self._background_remover = None
         self._multi_view_processor = None
+        self._lighting_normalizer = None
+        self._advanced_mesh_optimizer = None

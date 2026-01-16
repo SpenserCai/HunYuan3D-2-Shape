@@ -17,6 +17,13 @@ GENERATION_PRESETS = {
     'quality': {'steps': 100, 'resolution': 512, 'label': '高质量 (Quality)'}
 }
 
+# 光照校正方法
+LIGHTING_METHODS = [
+    ('直方图匹配', 'histogram_matching'),
+    ('颜色转移', 'color_transfer'),
+    ('自动曝光', 'auto_exposure')
+]
+
 
 def create_generation_mode_selector() -> Tuple[gr.Radio, gr.Radio]:
     """
@@ -108,6 +115,68 @@ def create_settings_panel() -> Dict[str, Any]:
                 step=1000,
                 info="限制输出网格的面数"
             )
+    
+    with gr.Accordion("质量增强选项", open=False):
+        gr.Markdown("*以下选项可提升生成质量，但会增加处理时间*")
+        
+        # 预处理增强（仅多视图模式）
+        with gr.Group():
+            gr.Markdown("**预处理增强** (多视图模式)")
+            with gr.Row():
+                components['normalize_lighting'] = gr.Checkbox(
+                    label="光照一致性校正",
+                    value=False,
+                    info="统一多视图的光照条件"
+                )
+                components['lighting_method'] = gr.Dropdown(
+                    label="校正方法",
+                    choices=LIGHTING_METHODS,
+                    value="histogram_matching",
+                    info="选择光照校正算法"
+                )
+                components['lighting_strength'] = gr.Slider(
+                    label="校正强度",
+                    minimum=0.0,
+                    maximum=1.0,
+                    value=0.8,
+                    step=0.1,
+                    info="0=不校正, 1=完全校正"
+                )
+        
+        # 后处理增强
+        with gr.Group():
+            gr.Markdown("**后处理增强**")
+            with gr.Row():
+                components['fill_holes'] = gr.Checkbox(
+                    label="填充孔洞",
+                    value=False,
+                    info="自动填充网格中的孔洞"
+                )
+                components['make_watertight'] = gr.Checkbox(
+                    label="水密网格",
+                    value=False,
+                    info="生成封闭的水密网格"
+                )
+            with gr.Row():
+                components['smooth_surface'] = gr.Checkbox(
+                    label="表面平滑",
+                    value=False,
+                    info="平滑网格表面减少噪声"
+                )
+                components['smooth_iterations'] = gr.Slider(
+                    label="平滑迭代",
+                    minimum=1,
+                    maximum=10,
+                    value=2,
+                    step=1,
+                    info="平滑处理的迭代次数"
+                )
+            with gr.Row():
+                components['recalculate_normals'] = gr.Checkbox(
+                    label="重算法线",
+                    value=False,
+                    info="重新计算顶点和面法线"
+                )
     
     with gr.Accordion("输出设置", open=False):
         components['output_format'] = gr.Dropdown(

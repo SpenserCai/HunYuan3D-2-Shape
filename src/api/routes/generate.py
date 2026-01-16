@@ -54,7 +54,14 @@ async def generate(request: GenerateRequest):
             max_faces=request.max_faces,
             output_format=request.output_format,
             input_mode=InputMode.SINGLE_IMAGE,
-            auto_detect_mode=False
+            auto_detect_mode=False,
+            # 高级后处理选项
+            fill_holes=request.fill_holes,
+            max_hole_size=request.max_hole_size,
+            make_watertight=request.make_watertight,
+            smooth_surface=request.smooth_surface,
+            smooth_iterations=request.smooth_iterations,
+            recalculate_normals=request.recalculate_normals
         )
         
         # 获取服务实例
@@ -129,7 +136,18 @@ async def generate_multi_view(request: MultiViewGenerateRequest):
             max_faces=request.max_faces,
             output_format=request.output_format,
             input_mode=InputMode.MULTI_VIEW,
-            auto_detect_mode=False
+            auto_detect_mode=False,
+            # 高级预处理选项
+            normalize_lighting=request.normalize_lighting,
+            lighting_method=request.lighting_method,
+            lighting_strength=request.lighting_strength,
+            # 高级后处理选项
+            fill_holes=request.fill_holes,
+            max_hole_size=request.max_hole_size,
+            make_watertight=request.make_watertight,
+            smooth_surface=request.smooth_surface,
+            smooth_iterations=request.smooth_iterations,
+            recalculate_normals=request.recalculate_normals
         )
         
         # 获取服务实例

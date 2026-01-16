@@ -39,6 +39,14 @@ class GenerateRequest(BaseModel):
     max_faces: int = Field(40000, ge=1000, le=1000000, description="最大面数")
     output_format: str = Field("glb", description="输出格式")
     
+    # 高级后处理选项
+    fill_holes: bool = Field(False, description="是否填充孔洞")
+    max_hole_size: int = Field(100, ge=10, le=500, description="最大孔洞大小")
+    make_watertight: bool = Field(False, description="是否生成水密网格")
+    smooth_surface: bool = Field(False, description="是否平滑表面")
+    smooth_iterations: int = Field(2, ge=1, le=10, description="平滑迭代次数")
+    recalculate_normals: bool = Field(False, description="是否重新计算法线")
+    
     model_config = {
         "json_schema_extra": {
             "example": {
@@ -48,7 +56,11 @@ class GenerateRequest(BaseModel):
                 "remove_background": True,
                 "optimize_mesh": True,
                 "max_faces": 40000,
-                "output_format": "glb"
+                "output_format": "glb",
+                "fill_holes": False,
+                "make_watertight": False,
+                "smooth_surface": False,
+                "recalculate_normals": False
             }
         }
     }
@@ -68,6 +80,19 @@ class MultiViewGenerateRequest(BaseModel):
     max_faces: int = Field(40000, ge=1000, le=1000000, description="最大面数")
     output_format: str = Field("glb", description="输出格式")
     
+    # 高级预处理选项
+    normalize_lighting: bool = Field(False, description="是否进行光照一致性校正")
+    lighting_method: str = Field("histogram_matching", description="光照校正方法")
+    lighting_strength: float = Field(0.8, ge=0.0, le=1.0, description="光照校正强度")
+    
+    # 高级后处理选项
+    fill_holes: bool = Field(False, description="是否填充孔洞")
+    max_hole_size: int = Field(100, ge=10, le=500, description="最大孔洞大小")
+    make_watertight: bool = Field(False, description="是否生成水密网格")
+    smooth_surface: bool = Field(False, description="是否平滑表面")
+    smooth_iterations: int = Field(2, ge=1, le=10, description="平滑迭代次数")
+    recalculate_normals: bool = Field(False, description="是否重新计算法线")
+    
     model_config = {
         "json_schema_extra": {
             "example": {
@@ -82,7 +107,12 @@ class MultiViewGenerateRequest(BaseModel):
                 "remove_background": True,
                 "optimize_mesh": True,
                 "max_faces": 40000,
-                "output_format": "glb"
+                "output_format": "glb",
+                "normalize_lighting": False,
+                "fill_holes": False,
+                "make_watertight": False,
+                "smooth_surface": False,
+                "recalculate_normals": False
             }
         }
     }

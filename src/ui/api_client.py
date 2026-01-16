@@ -104,7 +104,13 @@ class ShapeAPIClient:
         remove_background: bool = True,
         optimize_mesh: bool = True,
         max_faces: int = 40000,
-        output_format: str = "glb"
+        output_format: str = "glb",
+        # 高级后处理选项
+        fill_holes: bool = False,
+        make_watertight: bool = False,
+        smooth_surface: bool = False,
+        smooth_iterations: int = 2,
+        recalculate_normals: bool = False
     ) -> APIResponse:
         """
         单图生成 3D 模型
@@ -118,6 +124,11 @@ class ShapeAPIClient:
             optimize_mesh: 是否优化网格
             max_faces: 最大面数
             output_format: 输出格式
+            fill_holes: 是否填充孔洞
+            make_watertight: 是否生成水密网格
+            smooth_surface: 是否平滑表面
+            smooth_iterations: 平滑迭代次数
+            recalculate_normals: 是否重新计算法线
             
         Returns:
             API 响应
@@ -132,7 +143,12 @@ class ShapeAPIClient:
             "remove_background": remove_background,
             "optimize_mesh": optimize_mesh,
             "max_faces": max_faces,
-            "output_format": output_format
+            "output_format": output_format,
+            "fill_holes": fill_holes,
+            "make_watertight": make_watertight,
+            "smooth_surface": smooth_surface,
+            "smooth_iterations": smooth_iterations,
+            "recalculate_normals": recalculate_normals
         }
         
         return self._make_request("POST", "/api/v1/generate", json_data=payload)
@@ -146,7 +162,17 @@ class ShapeAPIClient:
         remove_background: bool = True,
         optimize_mesh: bool = True,
         max_faces: int = 40000,
-        output_format: str = "glb"
+        output_format: str = "glb",
+        # 高级预处理选项
+        normalize_lighting: bool = False,
+        lighting_method: str = "histogram_matching",
+        lighting_strength: float = 0.8,
+        # 高级后处理选项
+        fill_holes: bool = False,
+        make_watertight: bool = False,
+        smooth_surface: bool = False,
+        smooth_iterations: int = 2,
+        recalculate_normals: bool = False
     ) -> APIResponse:
         """
         多视图生成 3D 模型
@@ -154,6 +180,9 @@ class ShapeAPIClient:
         Args:
             views: 视图字典 {view_name: image}
             其他参数同 generate_single
+            normalize_lighting: 是否进行光照一致性校正
+            lighting_method: 光照校正方法
+            lighting_strength: 光照校正强度
             
         Returns:
             API 响应
@@ -171,7 +200,15 @@ class ShapeAPIClient:
             "remove_background": remove_background,
             "optimize_mesh": optimize_mesh,
             "max_faces": max_faces,
-            "output_format": output_format
+            "output_format": output_format,
+            "normalize_lighting": normalize_lighting,
+            "lighting_method": lighting_method,
+            "lighting_strength": lighting_strength,
+            "fill_holes": fill_holes,
+            "make_watertight": make_watertight,
+            "smooth_surface": smooth_surface,
+            "smooth_iterations": smooth_iterations,
+            "recalculate_normals": recalculate_normals
         }
         
         return self._make_request("POST", "/api/v1/generate/multi-view", json_data=payload)

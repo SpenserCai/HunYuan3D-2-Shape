@@ -380,7 +380,10 @@ class GradioApp:
             def do_generate(
                 single_img, 
                 mv_front, mv_back, mv_left, mv_right,
-                steps, guidance, octree_res, remove_bg, optimize, max_f, out_fmt
+                steps, guidance, octree_res, remove_bg, optimize, max_f, out_fmt,
+                # 质量增强选项
+                normalize_lighting, lighting_method, lighting_strength,
+                fill_holes, make_watertight, smooth_surface, smooth_iterations, recalculate_normals
             ):
                 """根据输入判断使用单图还是多视图生成"""
                 # 只检查服务是否连通（模型会在第一次请求时懒加载）
@@ -392,11 +395,14 @@ class GradioApp:
                 if mv_front is not None or mv_back is not None or mv_left is not None or mv_right is not None:
                     return self._generate_multi_view(
                         mv_front, mv_back, mv_left, mv_right,
-                        steps, guidance, octree_res, remove_bg, optimize, max_f, out_fmt
+                        steps, guidance, octree_res, remove_bg, optimize, max_f, out_fmt,
+                        normalize_lighting, lighting_method, lighting_strength,
+                        fill_holes, make_watertight, smooth_surface, smooth_iterations, recalculate_normals
                     )
                 return self._generate_single(
                     single_img,
-                    steps, guidance, octree_res, remove_bg, optimize, max_f, out_fmt
+                    steps, guidance, octree_res, remove_bg, optimize, max_f, out_fmt,
+                    fill_holes, make_watertight, smooth_surface, smooth_iterations, recalculate_normals
                 )
             
             # 生成按钮事件
@@ -417,7 +423,16 @@ class GradioApp:
                     settings['remove_background'],
                     settings['optimize_mesh'],
                     settings['max_faces'],
-                    settings['output_format']
+                    settings['output_format'],
+                    # 质量增强选项
+                    settings['normalize_lighting'],
+                    settings['lighting_method'],
+                    settings['lighting_strength'],
+                    settings['fill_holes'],
+                    settings['make_watertight'],
+                    settings['smooth_surface'],
+                    settings['smooth_iterations'],
+                    settings['recalculate_normals']
                 ],
                 outputs=[model_viewer_html, download_btn, status_text, stats_output]
             )
@@ -433,7 +448,13 @@ class GradioApp:
         remove_background: bool,
         optimize_mesh: bool,
         max_faces: int,
-        output_format: str
+        output_format: str,
+        # 质量增强选项
+        fill_holes: bool = False,
+        make_watertight: bool = False,
+        smooth_surface: bool = False,
+        smooth_iterations: int = 2,
+        recalculate_normals: bool = False
     ) -> Tuple[Optional[str], Optional[str], str, Dict]:
         """单图生成"""
         if image is None:
@@ -448,7 +469,12 @@ class GradioApp:
                 remove_background=remove_background,
                 optimize_mesh=optimize_mesh,
                 max_faces=int(max_faces),
-                output_format=output_format
+                output_format=output_format,
+                fill_holes=fill_holes,
+                make_watertight=make_watertight,
+                smooth_surface=smooth_surface,
+                smooth_iterations=int(smooth_iterations),
+                recalculate_normals=recalculate_normals
             )
             
             if not response.success:
@@ -502,7 +528,16 @@ class GradioApp:
         remove_background: bool,
         optimize_mesh: bool,
         max_faces: int,
-        output_format: str
+        output_format: str,
+        # 质量增强选项
+        normalize_lighting: bool = False,
+        lighting_method: str = "histogram_matching",
+        lighting_strength: float = 0.8,
+        fill_holes: bool = False,
+        make_watertight: bool = False,
+        smooth_surface: bool = False,
+        smooth_iterations: int = 2,
+        recalculate_normals: bool = False
     ) -> Tuple[Optional[str], Optional[str], str, Dict]:
         """多视图生成"""
         if front_image is None:
@@ -525,7 +560,15 @@ class GradioApp:
                 remove_background=remove_background,
                 optimize_mesh=optimize_mesh,
                 max_faces=int(max_faces),
-                output_format=output_format
+                output_format=output_format,
+                normalize_lighting=normalize_lighting,
+                lighting_method=lighting_method,
+                lighting_strength=float(lighting_strength),
+                fill_holes=fill_holes,
+                make_watertight=make_watertight,
+                smooth_surface=smooth_surface,
+                smooth_iterations=int(smooth_iterations),
+                recalculate_normals=recalculate_normals
             )
             
             if not response.success:

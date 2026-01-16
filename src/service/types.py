@@ -82,6 +82,19 @@ class GenerationConfig:
     input_mode: InputMode = InputMode.SINGLE_IMAGE
     auto_detect_mode: bool = True  # 自动检测输入模式
     
+    # 高级预处理选项
+    normalize_lighting: bool = False  # 多视图光照一致性校正
+    lighting_method: str = "histogram_matching"  # 光照校正方法
+    lighting_strength: float = 0.8  # 光照校正强度
+    
+    # 高级后处理选项
+    fill_holes: bool = False  # 填充孔洞
+    max_hole_size: int = 100  # 最大孔洞大小
+    make_watertight: bool = False  # 生成水密网格
+    smooth_surface: bool = False  # 表面平滑
+    smooth_iterations: int = 2  # 平滑迭代次数
+    recalculate_normals: bool = False  # 重新计算法线
+    
     def to_dict(self) -> dict:
         """转换为字典"""
         result = asdict(self)
