@@ -11,6 +11,7 @@ import time
 import subprocess
 import atexit
 import shutil
+import html
 from typing import Optional, Dict, Any, Tuple
 
 import gradio as gr
@@ -226,24 +227,45 @@ class GradioApp:
         Returns:
             HTML 字符串
         """
-        # 注意：script 标签必须在 model-viewer 之前加载
-        return f"""
-        <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.1.1/dist/model-viewer.min.js"></script>
-        <div style="height: {height}px; width: 100%; border-radius: 12px; overflow: hidden; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);">
-            <model-viewer
-                src="{model_path}"
-                alt="3D Model"
-                auto-rotate
-                rotation-per-second="30deg"
-                camera-controls
-                shadow-intensity="1"
-                exposure="0.8"
-                environment-image="neutral"
-                camera-orbit="0deg 75deg 105%"
-                style="width: 100%; height: 100%;"
-            ></model-viewer>
+        # 使用 srcdoc 创建 iframe，确保 model-viewer 脚本正确加载
+        # 这种方式比直接在 Gradio HTML 中使用 script 标签更可靠
+        iframe_content = f'''<!DOCTYPE html>
+<html>
+<head>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.1.1/dist/model-viewer.min.js"></script>
+    <style>
+        body {{ margin: 0; padding: 0; overflow: hidden; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); }}
+        model-viewer {{ width: 100%; height: 100vh; }}
+    </style>
+</head>
+<body>
+    <model-viewer
+        src="{model_path}"
+        alt="3D Model"
+        auto-rotate
+        rotation-per-second="30deg"
+        camera-controls
+        shadow-intensity="1"
+        exposure="0.8"
+        environment-image="neutral"
+        camera-orbit="0deg 75deg 105%"
+    ></model-viewer>
+</body>
+</html>'''
+        
+        # 对 iframe 内容进行 HTML 转义以用于 srcdoc
+        import html
+        escaped_content = html.escape(iframe_content)
+        
+        return f'''
+        <div style="height: {height}px; width: 100%; border-radius: 12px; overflow: hidden;">
+            <iframe 
+                srcdoc="{escaped_content}"
+                style="width: 100%; height: 100%; border: none;"
+                allow="autoplay; fullscreen; xr-spatial-tracking"
+            ></iframe>
         </div>
-        """
+        '''
     
     def check_health(self) -> Tuple[str, Dict]:
         """检查服务健康状态"""
