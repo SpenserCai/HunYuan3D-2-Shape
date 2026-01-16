@@ -337,22 +337,24 @@ class GradioApp:
                                 label="3D 模型预览",
                                 elem_classes=["model-preview"]
                             )
-                            status_text = gr.Markdown(
-                                value="*上传图像并点击生成按钮开始创建 3D 模型*"
-                            )
+                            with gr.Row():
+                                status_text = gr.Markdown(
+                                    value="*上传图像并点击生成按钮开始创建 3D 模型*"
+                                )
+                                # 下载按钮 - 初始禁用，生成完成后启用
+                                download_btn = gr.DownloadButton(
+                                    label="📥 下载模型",
+                                    value=None,
+                                    interactive=False,
+                                    variant="secondary",
+                                    size="sm"
+                                )
                         
                         with gr.Tab('生成统计', id='stats_tab'):
                             stats_output = gr.JSON(
                                 label="生成统计信息",
                                 value={}
                             )
-                    
-                    # 下载区域
-                    download_file = gr.File(
-                        label="下载模型文件",
-                        visible=True,
-                        interactive=False
-                    )
             
             # ========== 事件绑定 ==========
             
@@ -384,7 +386,7 @@ class GradioApp:
                 # 只检查服务是否连通（模型会在第一次请求时懒加载）
                 health_response = self.client.health_check()
                 if not health_response.success:
-                    return MODEL_VIEWER_PLACEHOLDER, None, f"❌ *服务未连接: {health_response.error}*", {"错误": health_response.error}
+                    return MODEL_VIEWER_PLACEHOLDER, gr.update(value=None, interactive=False), f"❌ *服务未连接: {health_response.error}*", {"错误": health_response.error}
                 
                 # 判断使用单图还是多视图
                 if mv_front is not None or mv_back is not None or mv_left is not None or mv_right is not None:
@@ -399,8 +401,8 @@ class GradioApp:
             
             # 生成按钮事件
             generate_btn.click(
-                fn=lambda: (MODEL_VIEWER_PLACEHOLDER, None, "⏳ *正在生成 3D 模型，请稍候...*", {}),
-                outputs=[model_viewer_html, download_file, status_text, stats_output]
+                fn=lambda: (MODEL_VIEWER_PLACEHOLDER, gr.update(value=None, interactive=False), "⏳ *正在生成 3D 模型，请稍候...*", {}),
+                outputs=[model_viewer_html, download_btn, status_text, stats_output]
             ).then(
                 fn=do_generate,
                 inputs=[
@@ -417,7 +419,7 @@ class GradioApp:
                     settings['max_faces'],
                     settings['output_format']
                 ],
-                outputs=[model_viewer_html, download_file, status_text, stats_output]
+                outputs=[model_viewer_html, download_btn, status_text, stats_output]
             )
         
         return demo
@@ -435,7 +437,7 @@ class GradioApp:
     ) -> Tuple[Optional[str], Optional[str], str, Dict]:
         """单图生成"""
         if image is None:
-            return MODEL_VIEWER_PLACEHOLDER, None, "❌ *请上传图像*", {"错误": "请上传图像"}
+            return MODEL_VIEWER_PLACEHOLDER, gr.update(value=None, interactive=False), "❌ *请上传图像*", {"错误": "请上传图像"}
         
         try:
             response = self.client.generate_single(
@@ -450,13 +452,13 @@ class GradioApp:
             )
             
             if not response.success:
-                return MODEL_VIEWER_PLACEHOLDER, None, f"❌ *生成失败: {response.error}*", {"错误": response.error}
+                return MODEL_VIEWER_PLACEHOLDER, gr.update(value=None, interactive=False), f"❌ *生成失败: {response.error}*", {"错误": response.error}
             
             task_id = response.data.get("task_id")
             result_response = self.client.get_task_result(task_id)
             
             if not result_response.success:
-                return MODEL_VIEWER_PLACEHOLDER, None, f"❌ *获取结果失败: {result_response.error}*", {"错误": result_response.error}
+                return MODEL_VIEWER_PLACEHOLDER, gr.update(value=None, interactive=False), f"❌ *获取结果失败: {result_response.error}*", {"错误": result_response.error}
             
             result_data = result_response.data
             mesh_bytes = base64.b64decode(result_data["mesh_base64"])
@@ -482,10 +484,11 @@ class GradioApp:
                 "文件大小": f"{len(mesh_bytes) / 1024:.1f} KB"
             }
             
-            return viewer_html, download_path, "✅ *生成完成！可以在上方预览和下载模型*", stats
+            # 返回下载按钮更新：设置文件路径并启用
+            return viewer_html, gr.update(value=download_path, interactive=True), "✅ *生成完成！可以在上方预览和下载模型*", stats
             
         except Exception as e:
-            return MODEL_VIEWER_PLACEHOLDER, None, f"❌ *发生错误: {str(e)}*", {"错误": str(e)}
+            return MODEL_VIEWER_PLACEHOLDER, gr.update(value=None, interactive=False), f"❌ *发生错误: {str(e)}*", {"错误": str(e)}
     
     def _generate_multi_view(
         self,
@@ -503,7 +506,7 @@ class GradioApp:
     ) -> Tuple[Optional[str], Optional[str], str, Dict]:
         """多视图生成"""
         if front_image is None:
-            return MODEL_VIEWER_PLACEHOLDER, None, "❌ *请至少上传正面视图图像*", {"错误": "请至少上传正面视图图像"}
+            return MODEL_VIEWER_PLACEHOLDER, gr.update(value=None, interactive=False), "❌ *请至少上传正面视图图像*", {"错误": "请至少上传正面视图图像"}
         
         views = {"front": front_image}
         if back_image is not None:
@@ -526,13 +529,13 @@ class GradioApp:
             )
             
             if not response.success:
-                return MODEL_VIEWER_PLACEHOLDER, None, f"❌ *生成失败: {response.error}*", {"错误": response.error}
+                return MODEL_VIEWER_PLACEHOLDER, gr.update(value=None, interactive=False), f"❌ *生成失败: {response.error}*", {"错误": response.error}
             
             task_id = response.data.get("task_id")
             result_response = self.client.get_task_result(task_id)
             
             if not result_response.success:
-                return MODEL_VIEWER_PLACEHOLDER, None, f"❌ *获取结果失败: {result_response.error}*", {"错误": result_response.error}
+                return MODEL_VIEWER_PLACEHOLDER, gr.update(value=None, interactive=False), f"❌ *获取结果失败: {result_response.error}*", {"错误": result_response.error}
             
             result_data = result_response.data
             mesh_bytes = base64.b64decode(result_data["mesh_base64"])
@@ -558,10 +561,11 @@ class GradioApp:
                 "文件大小": f"{len(mesh_bytes) / 1024:.1f} KB"
             }
             
-            return viewer_html, download_path, "✅ *生成完成！可以在上方预览和下载模型*", stats
+            # 返回下载按钮更新：设置文件路径并启用
+            return viewer_html, gr.update(value=download_path, interactive=True), "✅ *生成完成！可以在上方预览和下载模型*", stats
             
         except Exception as e:
-            return MODEL_VIEWER_PLACEHOLDER, None, f"❌ *发生错误: {str(e)}*", {"错误": str(e)}
+            return MODEL_VIEWER_PLACEHOLDER, gr.update(value=None, interactive=False), f"❌ *发生错误: {str(e)}*", {"错误": str(e)}
 
 
 def create_app(
