@@ -76,15 +76,15 @@ def create_settings_panel() -> Dict[str, Any]:
         with gr.Row():
             components['num_inference_steps'] = gr.Slider(
                 label="推理步数",
-                minimum=10,
+                minimum=1,
                 maximum=200,
                 value=50,
-                step=5,
+                step=1,
                 info="更多步数通常产生更好的结果"
             )
             components['guidance_scale'] = gr.Slider(
                 label="引导强度",
-                minimum=1.0,
+                minimum=0,
                 maximum=20.0,
                 value=5.0,
                 step=0.5,
@@ -102,10 +102,10 @@ def create_settings_panel() -> Dict[str, Any]:
             )
             components['max_faces'] = gr.Slider(
                 label="最大面数",
-                minimum=5000,
-                maximum=200000,
+                minimum=1000,
+                maximum=1000000,
                 value=40000,
-                step=5000,
+                step=1000,
                 info="限制输出网格的面数"
             )
     

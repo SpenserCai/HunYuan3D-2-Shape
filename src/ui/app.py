@@ -264,8 +264,7 @@ class GradioApp:
             def do_generate(
                 single_img, 
                 mv_front, mv_back, mv_left, mv_right,
-                steps, guidance, octree_res, remove_bg, optimize, max_f, out_fmt,
-                progress=gr.Progress()
+                steps, guidance, octree_res, remove_bg, optimize, max_f, out_fmt
             ):
                 """根据输入判断使用单图还是多视图生成"""
                 # 只检查服务是否连通（模型会在第一次请求时懒加载）
@@ -277,13 +276,11 @@ class GradioApp:
                 if mv_front is not None or mv_back is not None or mv_left is not None or mv_right is not None:
                     return self._generate_multi_view(
                         mv_front, mv_back, mv_left, mv_right,
-                        steps, guidance, octree_res, remove_bg, optimize, max_f, out_fmt,
-                        progress
+                        steps, guidance, octree_res, remove_bg, optimize, max_f, out_fmt
                     )
                 return self._generate_single(
                     single_img,
-                    steps, guidance, octree_res, remove_bg, optimize, max_f, out_fmt,
-                    progress
+                    steps, guidance, octree_res, remove_bg, optimize, max_f, out_fmt
                 )
             
             # 生成按钮事件
@@ -354,11 +351,16 @@ class GradioApp:
             with open(output_path, "wb") as f:
                 f.write(mesh_bytes)
             
+            # 确保返回绝对路径
+            output_path = os.path.abspath(output_path)
+            
             stats = {
                 "任务 ID": task_id,
                 "处理时间": f"{result_data.get('processing_time', 0):.2f} 秒",
                 "输入模式": result_data.get("input_mode", "single"),
-                "输出格式": result_data.get("format", output_format)
+                "输出格式": result_data.get("format", output_format),
+                "文件路径": output_path,
+                "文件大小": f"{os.path.getsize(output_path) / 1024:.1f} KB"
             }
             
             return output_path, output_path, "✅ *生成完成！可以在上方预览和下载模型*", stats
@@ -420,12 +422,17 @@ class GradioApp:
             with open(output_path, "wb") as f:
                 f.write(mesh_bytes)
             
+            # 确保返回绝对路径
+            output_path = os.path.abspath(output_path)
+            
             stats = {
                 "任务 ID": task_id,
                 "处理时间": f"{result_data.get('processing_time', 0):.2f} 秒",
                 "输入模式": "multi_view",
                 "视图数量": result_data.get("view_count", len(views)),
-                "输出格式": result_data.get("format", output_format)
+                "输出格式": result_data.get("format", output_format),
+                "文件路径": output_path,
+                "文件大小": f"{os.path.getsize(output_path) / 1024:.1f} KB"
             }
             
             return output_path, output_path, "✅ *生成完成！可以在上方预览和下载模型*", stats
