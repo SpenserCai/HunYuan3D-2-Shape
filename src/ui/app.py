@@ -301,6 +301,9 @@ class GradioApp:
             # 标题 - 跨越整个宽度
             gr.HTML(TITLE_HTML)
             
+            # 使用 State 跟踪当前选中的输入模式
+            input_mode_state = gr.State(value='single')
+            
             # 主要内容区域 - 左右布局
             with gr.Row(equal_height=False, elem_classes=["main-row"]):
                 # ========== 左侧面板 - 输入和设置 ==========
@@ -310,10 +313,10 @@ class GradioApp:
                     
                     # 输入模式选择
                     with gr.Tabs(selected='tab_single') as input_tabs:
-                        with gr.Tab('单图模式', id='tab_single'):
+                        with gr.Tab('单图模式', id='tab_single') as tab_single:
                             single_image = create_single_image_input()
                         
-                        with gr.Tab('多视图模式', id='tab_multi_view'):
+                        with gr.Tab('多视图模式', id='tab_multi_view') as tab_multi_view:
                             mv_images = create_multi_view_input()
                     
                     # 生成按钮
@@ -358,6 +361,16 @@ class GradioApp:
             
             # ========== 事件绑定 ==========
             
+            # Tab 切换时更新输入模式状态
+            tab_single.select(
+                fn=lambda: 'single',
+                outputs=[input_mode_state]
+            )
+            tab_multi_view.select(
+                fn=lambda: 'multi_view',
+                outputs=[input_mode_state]
+            )
+            
             # 刷新状态
             status_components['refresh_btn'].click(
                 fn=self.check_health,
@@ -378,7 +391,7 @@ class GradioApp:
             
             # 生成函数
             def do_generate(
-                selected_tab,
+                input_mode,
                 single_img, 
                 mv_front, mv_back, mv_left, mv_right,
                 steps, guidance, octree_res, remove_bg, optimize, max_f, out_fmt,
@@ -386,15 +399,14 @@ class GradioApp:
                 normalize_lighting, lighting_method, lighting_strength,
                 fill_holes, make_watertight, smooth_surface, smooth_iterations, recalculate_normals
             ):
-                """根据选中的 Tab 判断使用单图还是多视图生成"""
+                """根据选中的输入模式判断使用单图还是多视图生成"""
                 # 只检查服务是否连通（模型会在第一次请求时懒加载）
                 health_response = self.client.health_check()
                 if not health_response.success:
                     return MODEL_VIEWER_PLACEHOLDER, gr.update(value=None, interactive=False), f"❌ *服务未连接: {health_response.error}*", {"错误": health_response.error}
                 
-                # 根据选中的 Tab 决定使用哪个接口
-                # selected_tab 是 Tab 的 id，'tab_single' 或 'tab_multi_view'
-                if selected_tab == 'tab_multi_view':
+                # 根据输入模式决定使用哪个接口
+                if input_mode == 'multi_view':
                     return self._generate_multi_view(
                         mv_front, mv_back, mv_left, mv_right,
                         steps, guidance, octree_res, remove_bg, optimize, max_f, out_fmt,
@@ -414,7 +426,7 @@ class GradioApp:
             ).then(
                 fn=do_generate,
                 inputs=[
-                    input_tabs,
+                    input_mode_state,
                     single_image,
                     mv_images['front'],
                     mv_images['back'],
