@@ -164,7 +164,11 @@ class PipelineOrchestrator:
             preprocess_result = self.background_remover.process(image)
             image = preprocess_result["image"]
         
-        # 3. 推理（使用 2.1 模型）
+        # 3. 确保 2.1 模型已加载
+        if ModelType.HUNYUAN3D_2_1.value not in self.model_manager.loaded_models:
+            self.model_manager.load_model(ModelType.HUNYUAN3D_2_1)
+        
+        # 4. 推理（使用 2.1 模型）
         pipeline = self.model_manager.get_model(ModelType.HUNYUAN3D_2_1)
         mesh = pipeline(
             image=image,

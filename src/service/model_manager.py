@@ -69,12 +69,16 @@ class ModelManager:
         # 根据模型类型选择 subfolder
         subfolder = self._get_subfolder(model_type)
         
+        # 根据模型类型选择是否使用 safetensors
+        # Hunyuan3D-2.1 使用 .ckpt 格式，Hunyuan3D-2mv 使用 .safetensors 格式
+        use_safetensors = self._get_use_safetensors(model_type)
+        
         pipeline = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained(
             model_path,
             device=self._device,
             dtype=self._dtype,
             subfolder=subfolder,
-            use_safetensors=True,
+            use_safetensors=use_safetensors,
             variant='fp16'
         )
         
@@ -133,6 +137,19 @@ class ModelManager:
             ModelType.HUNYUAN3D_2MV: "hunyuan3d-dit-v2-mv",
         }
         return subfolders[model_type]
+    
+    def _get_use_safetensors(self, model_type: ModelType) -> bool:
+        """
+        获取是否使用 safetensors 格式
+        
+        Hunyuan3D-2.1 使用 .ckpt 格式
+        Hunyuan3D-2mv 使用 .safetensors 格式
+        """
+        use_safetensors_map = {
+            ModelType.HUNYUAN3D_2_1: False,  # 使用 .ckpt
+            ModelType.HUNYUAN3D_2MV: True,   # 使用 .safetensors
+        }
+        return use_safetensors_map[model_type]
     
     @property
     def loaded_models(self) -> List[str]:
