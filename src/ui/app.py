@@ -100,23 +100,23 @@ MODEL_VIEWER_PLACEHOLDER = """
     border-radius: 12px; 
     border: 2px dashed #374151; 
     display: flex; 
+    flex-direction: column;
     justify-content: center; 
     align-items: center;
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    box-sizing: border-box;
 ">
-    <div style="text-align: center; padding: 40px;">
-        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="1.5" style="margin-bottom: 16px;">
-            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-            <line x1="12" y1="22.08" x2="12" y2="12"/>
-        </svg>
-        <p style="color: #9ca3af; font-size: 18px; font-weight: 500; margin: 0 0 8px 0;">
-            欢迎使用 Hunyuan3D
-        </p>
-        <p style="color: #6b7280; font-size: 14px; margin: 0;">
-            上传图像并点击生成按钮开始创建 3D 模型
-        </p>
-    </div>
+    <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="1.5" style="margin-bottom: 16px; display: block;">
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+        <line x1="12" y1="22.08" x2="12" y2="12"/>
+    </svg>
+    <p style="color: #9ca3af; font-size: 18px; font-weight: 500; margin: 0 0 8px 0; text-align: center;">
+        欢迎使用 Hunyuan3D
+    </p>
+    <p style="color: #6b7280; font-size: 14px; margin: 0; text-align: center;">
+        上传图像并点击生成按钮开始创建 3D 模型
+    </p>
 </div>
 """
 
