@@ -378,6 +378,7 @@ class GradioApp:
             
             # 生成函数
             def do_generate(
+                selected_tab,
                 single_img, 
                 mv_front, mv_back, mv_left, mv_right,
                 steps, guidance, octree_res, remove_bg, optimize, max_f, out_fmt,
@@ -385,14 +386,15 @@ class GradioApp:
                 normalize_lighting, lighting_method, lighting_strength,
                 fill_holes, make_watertight, smooth_surface, smooth_iterations, recalculate_normals
             ):
-                """根据输入判断使用单图还是多视图生成"""
+                """根据选中的 Tab 判断使用单图还是多视图生成"""
                 # 只检查服务是否连通（模型会在第一次请求时懒加载）
                 health_response = self.client.health_check()
                 if not health_response.success:
                     return MODEL_VIEWER_PLACEHOLDER, gr.update(value=None, interactive=False), f"❌ *服务未连接: {health_response.error}*", {"错误": health_response.error}
                 
-                # 判断使用单图还是多视图
-                if mv_front is not None or mv_back is not None or mv_left is not None or mv_right is not None:
+                # 根据选中的 Tab 决定使用哪个接口
+                # selected_tab 是 Tab 的 id，'tab_single' 或 'tab_multi_view'
+                if selected_tab == 'tab_multi_view':
                     return self._generate_multi_view(
                         mv_front, mv_back, mv_left, mv_right,
                         steps, guidance, octree_res, remove_bg, optimize, max_f, out_fmt,
@@ -412,6 +414,7 @@ class GradioApp:
             ).then(
                 fn=do_generate,
                 inputs=[
+                    input_tabs,
                     single_image,
                     mv_images['front'],
                     mv_images['back'],
